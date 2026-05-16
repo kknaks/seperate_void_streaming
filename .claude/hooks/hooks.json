@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/docs-validate/scripts/medi-validate.sh",
+            "condition": "${HARNESS_HOOK_H1_ENABLED:-true}",
+            "path_filter": "medi_docs/current/**"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/scripts/medi-scaffold-check.sh",
+            "condition": "${HARNESS_HOOK_H2_ENABLED:-true}"
+          }
+        ]
+      }
+    ]
+  }
+}
