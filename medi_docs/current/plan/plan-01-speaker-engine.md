@@ -2,9 +2,9 @@
 id: plan-01
 type: plan
 title: speaker_engine v1 구현 마일스톤
-status: draft
+status: ready
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-17
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[adr-01-diart-wrapping-strategy]]"
@@ -14,9 +14,12 @@ sources:
   - "[[adr-05-ws-race-defaults]]"
   - "[[adr-06-mono-only-v1-multichannel-v2]]"
   - "[[adr-07-helper-scope]]"
+  - "[[adr-08-final-recluster-strategy]]"
   - "[[spec-01-speaker-engine-api]]"
   - "[[spec-02-speaker-store-schema]]"
   - "[[spec-03-diart-adapter]]"
+  - "[[spec-04-clustering-algorithms]]"
+  - "[[spec-05-test-strategy]]"
 tags: [plan, speaker-engine, milestone, v1]
 ---
 
@@ -79,10 +82,10 @@ tags: [plan, speaker-engine, milestone, v1]
 | ID | 산출물 | 의존성 | 추정 (단독) | 참조 |
 |---|---|---|---|---|
 | **E-01** | `diart_adapter.py` (diart blocks wrap + RxPY 격리 + `WaveformBuffer` 연결 + L2 normalize + `ModelLoadError`) | F-03 | 2일 | [[spec-03-diart-adapter]] 전체, [[adr-01-diart-wrapping-strategy]] |
-| **E-02** | `speaker/identifier.py` (3-tier 매칭: registered/stored/auto + threshold 정책) | S-01, F-02 | 1일 | [[spec-01-speaker-engine-api]] §4, [[adr-02-pattern-b-fanout-chain]] |
-| **E-03** | `speaker/online.py` (`OnlineSpeakerClustering` wrapper + `local_speaker_id` 안정성) | E-01 | 1일 | reference-08 §5 |
-| **E-04** | `speaker/scheduler.py` (`AdaptiveReclusterScheduler`, R3 동기 inline) | — | 0.5일 | [[adr-05-ws-race-defaults]] R3 |
-| **E-05** | `speaker/final.py` (`FinalReclusterer` + HDBSCAN) | E-02 | 1일 | [[spec-01-speaker-engine-api]] §4 |
+| **E-02** | `speaker/identifier.py` (3-tier 매칭: registered/stored/auto + threshold 정책) | S-01, F-02 | 1일 | [[spec-04-clustering-algorithms]] §4.2/§4.3, [[spec-01-speaker-engine-api]] §4 |
+| **E-03** | `speaker/online.py` (diart `OnlineSpeakerClustering` wrapper + `local_speaker_id` 안정성) | E-01 | 1일 | [[spec-04-clustering-algorithms]] §4.3, reference-08 §5 |
+| **E-04** | `speaker/scheduler.py` (AdaptiveReclusterScheduler, R3 동기 inline) | — | 0.5일 | [[spec-04-clustering-algorithms]] §4.4, [[adr-05-ws-race-defaults]] R3 |
+| **E-05** | `speaker/final.py` (FinalReclusterer + HDBSCAN + Hungarian) | E-02 | 1일 | [[spec-04-clustering-algorithms]] §4.5, [[adr-08-final-recluster-strategy]] |
 | **E-06** | `engine.py` (`SpeakerEngine`: `stream` / `finalize` / `persist` / `set_alias` / `merge_speakers` / `delete_speaker` / `async with`, device 자동 감지 + `StorageError` 3회 backoff) | E-01~E-05, S-05 | 2일 | [[spec-01-speaker-engine-api]] §2, §4, §5 |
 
 **Phase 3 소계**: 7.5일
@@ -103,9 +106,9 @@ tags: [plan, speaker-engine, milestone, v1]
 
 | ID | 산출물 | 의존성 | 추정 (단독) | 참조 |
 |---|---|---|---|---|
-| **T-01** | `tests/unit/` — 합성 embedding 픽스처, mock diart, 모듈별 독립 검증 | F-04, S-02 | 2일 | [[spec-01-speaker-engine-api]] §6, [[spec-03-diart-adapter]] §6 |
-| **T-02** | `tests/integration/` — 실 audio fixture + memory store + e2e stream (R1~R5 race 포함) | E-06, S-02 | 2일 | [[spec-01-speaker-engine-api]] §6 |
-| **T-03** | `tests/live/` — pgvector backend 실통합 (CI skip 표시) | S-04 | 1일 | [[spec-02-speaker-store-schema]] §3 |
+| **T-01** | `tests/unit/` — 합성 embedding 픽스처, mock diart, 모듈별 독립 검증 | F-04, S-02 | 2일 | [[spec-05-test-strategy]] §2, §4, [[spec-01-speaker-engine-api]] §6, [[spec-03-diart-adapter]] §6 |
+| **T-02** | `tests/integration/` — 실 audio fixture + memory store + e2e stream (R1~R5 race 포함) | E-06, S-02 | 2일 | [[spec-05-test-strategy]] §2, §4, [[spec-01-speaker-engine-api]] §6 |
+| **T-03** | `tests/live/` — pgvector backend 실통합 (CI skip 표시) | S-04 | 1일 | [[spec-05-test-strategy]] §2, §5, [[spec-02-speaker-store-schema]] §3 |
 
 **Phase 5 소계**: 5일
 
@@ -113,7 +116,7 @@ tags: [plan, speaker-engine, milestone, v1]
 
 | ID | 산출물 | 의존성 | 추정 (단독) | 참조 |
 |---|---|---|---|---|
-| **V-01** | DER 측정 베이스라인 (CHiME 또는 AMI 단일 fixture, 목표 < 15%) | T-02 | 1일 | [[planning-02-speaker-engine]] §10, §11 |
+| **V-01** | DER 측정 베이스라인 (AMI 단일 fixture, 목표 < 15%) + 임계값 grid search 튜닝 + spec-04/adr-08 default 갱신 + `runbook-NN-engine-tuning` 박제 | T-02 | 2일 | [[spec-05-test-strategy]] §3, §6, [[planning-02-speaker-engine]] §10, §11 |
 | **V-02** | `README.md` + quickstart (repo 최상위, mediness 외부) | — | 0.5일 | — |
 | **V-03** | `examples/` (`basic_chunk_stream.py` / `persist_workflow.py` / `fastapi_ws_demo.py`) | E-06 | 1일 | [[planning-02-speaker-engine]] §9 |
 | **V-04** | v0.1.0 git+ssh 첫 릴리스 태깅 | V-01, V-02, V-03 | 0.5일 | [[planning-02-speaker-engine]] §9 |
@@ -209,16 +212,17 @@ flowchart TB
 
 ## §7 후속 문서 (plan-01 approved 후)
 
-| 문서 | 카테고리 | 시점 |
-|---|---|---|
-| `test-NN-speaker-engine` | test | M4 직전 — T-01~T-03 구체 케이스 박기 |
-| `runbook-NN-engine-tuning` | runbook | M5 이후 — threshold tuning / model 교체 / 마이그레이션 |
-| `release-NN-v0.1.0` | release-notes | V-04 태깅 후 |
+| 문서 | 카테고리 | 시점 | 상태 |
+|---|---|---|---|
+| `spec-05-test-strategy` | spec | 발주 전 정책 박제 | ✅ ready (2026-05-17) |
+| `test-NN-speaker-engine` | test | M4 직전 — T-01~T-03 구체 케이스 (구현 단계 결정) | todo |
+| `runbook-NN-engine-tuning` | runbook | V-01 시점 — DER 측정 raw + grid 결과 + 분할 시드 ([[spec-05-test-strategy]] §6) | todo |
+| `release-NN-v0.1.0` | release-notes | V-04 태깅 후 | todo |
 
 ---
 
 ## §8 참조
 
 - [[planning-02-speaker-engine]] §3~§13 전체 (범위·결정·후속 문서)
-- [[adr-01-diart-wrapping-strategy]] / [[adr-02-pattern-b-fanout-chain]] / [[adr-03-storage-via-env-url]] / [[adr-04-manual-persist-flow]] / [[adr-05-ws-race-defaults]] / [[adr-06-mono-only-v1-multichannel-v2]] / [[adr-07-helper-scope]]
-- [[spec-01-speaker-engine-api]] / [[spec-02-speaker-store-schema]] / [[spec-03-diart-adapter]]
+- [[adr-01-diart-wrapping-strategy]] / [[adr-02-pattern-b-fanout-chain]] / [[adr-03-storage-via-env-url]] / [[adr-04-manual-persist-flow]] / [[adr-05-ws-race-defaults]] / [[adr-06-mono-only-v1-multichannel-v2]] / [[adr-07-helper-scope]] / [[adr-08-final-recluster-strategy]]
+- [[spec-01-speaker-engine-api]] / [[spec-02-speaker-store-schema]] / [[spec-03-diart-adapter]] / [[spec-04-clustering-algorithms]] / [[spec-05-test-strategy]]

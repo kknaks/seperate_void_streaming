@@ -1,8 +1,8 @@
 # medi_docs/_map.md
 
-> 갱신 (PLAN-002-T-008, 2026-05-14). plan-01 신규 추가. planning-02 §13 plan-01 반영.
+> 갱신 (spec-05 + plan-01 ready, 2026-05-17). test strategy 박제 + plan-01 status draft→ready. 모든 Wave 발주 차단 해제 + V-01 튜닝 워크플로우 박힘.
 
-_총 13 문서 (planning 2 / plan 1 / spec 3 / policy 0 / adr 7 / runbook 0 / test 0 / release-notes 0 / retrospective 0)_
+_총 16 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 0 / test 0 / release-notes 0 / retrospective 0)_
 
 ## 카테고리별
 
@@ -13,9 +13,9 @@ _총 13 문서 (planning 2 / plan 1 / spec 3 / policy 0 / adr 7 / runbook 0 / te
 
 ### plan — 1
 
-- `plan-01-speaker-engine.md` _(status: draft)_
+- `plan-01-speaker-engine.md` _(status: ready)_
 
-### adr — 7
+### adr — 8
 
 - `adr-01-diart-wrapping-strategy.md`
 - `adr-02-pattern-b-fanout-chain.md`
@@ -24,12 +24,15 @@ _총 13 문서 (planning 2 / plan 1 / spec 3 / policy 0 / adr 7 / runbook 0 / te
 - `adr-05-ws-race-defaults.md`
 - `adr-06-mono-only-v1-multichannel-v2.md`
 - `adr-07-helper-scope.md`
+- `adr-08-final-recluster-strategy.md`
 
-### spec — 3
+### spec — 5
 
 - `spec-01-speaker-engine-api.md` _(status: ready)_
-- `spec-02-speaker-store-schema.md`
+- `spec-02-speaker-store-schema.md` _(status: ready)_
 - `spec-03-diart-adapter.md` _(status: ready)_
+- `spec-04-clustering-algorithms.md` _(status: ready)_
+- `spec-05-test-strategy.md` _(status: ready)_
 
 ## lineage 요약
 
@@ -83,10 +86,44 @@ adr-07-helper-scope
   ← spec-01-speaker-engine-api (§2 헬퍼 시그니처 명세)
   ← adr-06-mono-only-v1-multichannel-v2 (v1 mono 강제 결정의 후속)
 
-plan-01-speaker-engine
+plan-01-speaker-engine (status: ready)
   ← planning-02-speaker-engine (전체 범위/결정)
-  ← adr-01 ~ adr-07 (모든 결정 반영)
+  ← adr-01 ~ adr-08 (모든 결정 반영)
   ← spec-01-speaker-engine-api (WBS §2 구현 단위 근거)
   ← spec-02-speaker-store-schema (S-01~S-05 Storage phase)
   ← spec-03-diart-adapter (E-01 diart_adapter.py 근거)
+  ← spec-04-clustering-algorithms (E-02/E-03/E-04/E-05 구현 단위 근거)
+  ← spec-05-test-strategy (T-01/T-02/T-03 + V-01 정책 근거)
+
+spec-04-clustering-algorithms (status: ready)
+  ← planning-02-speaker-engine    (§41 3-tier, §43 HDBSCAN, §218 우리 컴포넌트)
+  ← spec-01-speaker-engine-api    (§2-1 SpeakerEngine API, §3 SpeakerCandidate)
+  ← spec-02-speaker-store-schema  (§4-1 find_match — Identifier 가 호출)
+  ← spec-03-diart-adapter         (process_window 출력 — segmentation+embeddings)
+  ← adr-01-diart-wrapping-strategy
+  ← adr-05-ws-race-defaults       (R3 inline recluster)
+  ← adr-08-final-recluster-strategy (HDBSCAN+Hungarian architectural 결정)
+  ← reference-07-pyannote-embedding-code (L2 정규화 책임)
+  ← reference-08-diart-streaming-structure §5 (OnlineSpeakerClustering 본문)
+
+adr-08-final-recluster-strategy
+  ← planning-02-speaker-engine (§5/§43 HDBSCAN 정밀 재정렬, §218/§511 우리 컴포넌트)
+  ← spec-01-speaker-engine-api (§3 SpeakerCandidate, §4-3 finalize drain)
+  ← adr-01-diart-wrapping-strategy
+  ← adr-05-ws-race-defaults (R4 finalize drain 5s)
+  ← reference-03-pyannote-audio-overview §77 (hdbscan 의존성)
+  ← reference-08-diart-streaming-structure §5
+  → spec-04-clustering-algorithms §4.5 (FinalRecluster 정책)
+  → spec-05-test-strategy §6 (OQ-08-1 튜닝 워크플로우)
+
+spec-05-test-strategy (status: ready)
+  ← planning-02-speaker-engine (§10 DER<15%, §11 검증 절차)
+  ← plan-01-speaker-engine (§2 Phase 5 T-01/T-02/T-03, §6 V-01)
+  ← spec-01-speaker-engine-api §6 (unit 매핑)
+  ← spec-02-speaker-store-schema §3 (live backend)
+  ← spec-03-diart-adapter §6 (integration 매핑)
+  ← spec-04-clustering-algorithms §6, §OQ-04-1/2 (튜닝 대상)
+  ← adr-01-diart-wrapping-strategy (mock 경계)
+  ← adr-05-ws-race-defaults (R1~R5 integration 검증)
+  ← adr-08-final-recluster-strategy OQ-08-1 (튜닝 대상)
 ```
