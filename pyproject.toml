@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speaker_engine"
+version = "0.1.0"
+description = "diart 기반 실시간 화자 분리 라이브러리"
+requires-python = ">=3.10"
+dependencies = [
+    "diart>=0.9",
+    "pyannote.audio>=4.0",
+    "numpy",
+    "scipy",
+    "hdbscan",
+]
+
+[project.optional-dependencies]
+sqlite = ["sqlite-vec"]
+pgvector = ["pgvector", "asyncpg"]
+beamforming = ["pyroomacoustics"]
+microphone = ["sounddevice"]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pyannote.metrics",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["speaker_engine*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = [
+    "integration: 실 diart 모델 / HF_TOKEN 필요 (spec-05 §2 integration 카테고리)",
+    "live: 실 인프라 (pgvector DB / HF Hub) 필요 (spec-05 §2 live 카테고리)",
+]

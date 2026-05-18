@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+
+# venv
+.venv/
+.venv-*/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# HF cache (huge — should be system cache)
+.cache/huggingface/
+
+# secrets
+.env
+.env.local
+
+# AMI / large fixtures (V-01 downloaded data)
+samples/*.wav
+samples/*.rttm
+!samples/.gitkeep

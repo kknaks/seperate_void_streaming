@@ -4,7 +4,7 @@ type: spec
 title: SpeakerEngine Public API 명세
 status: ready
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-18
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[adr-02-pattern-b-fanout-chain]]"
@@ -12,6 +12,7 @@ sources:
   - "[[adr-05-ws-race-defaults]]"
   - "[[adr-06-mono-only-v1-multichannel-v2]]"
   - "[[adr-07-helper-scope]]"
+  - "[[spec-04-clustering-algorithms]]"
 tags: [spec, speaker-engine, api, public-interface]
 ---
 
@@ -469,6 +470,15 @@ flowchart LR
 
 ---
 
+## §OQ 후속 박제 대상 (Open Questions)
+
+| ID | 질문 | 발견 시점 | 해결 시점 |
+|---|---|---|---|
+| OQ-01-1 | `MultiDeviceMerge.stream()` 의 source 주입 방식 — spec-01 §2-3 박제는 `stream() -> AsyncIterator[...]` (source 없음). 그러나 `SpeakerEngine.stream(source)` 는 source 필수. 사용처가 어떻게 source 를 각 engine 에 사전 주입하나? 옵션: (A) `MultiDeviceMerge.stream(sources: list[AsyncIterator[bytes]])` (B) `__init__(engines_with_sources: list[tuple[SpeakerEngine, AsyncIterator[bytes]]])` (C) MultiDeviceMerge 가 generator list 받기 (사용처가 N engine.stream(s_i) 후 전달) | 2026-05-18 H-05 구현 시 | architect 협의 |
+| OQ-01-2 | `from_microphone` 의 reconnect / device disconnect 정책 — v1 단순 종료, v1.1+ 자동 reconnect 검토 | 2026-05-18 H-03 구현 시 | v1.1 |
+
+---
+
 ## §7 참조
 
 - [[planning-02-speaker-engine]] §3 통합 방식, §7 입력 인터페이스, §8 WS Race 정책, §12 결정
@@ -479,3 +489,4 @@ flowchart LR
 - [[adr-07-helper-scope]] — 오디오 입력 헬퍼 3종 채택 결정 (mixdown / MultiDeviceMerge / beamforming)
 - [[spec-02-speaker-store-schema]] — SpeakerStore Protocol + DDL (persist 호출 대상)
 - [[spec-03-diart-adapter]] — DiartAdapter (stream 내부 호출 대상)
+- [[spec-04-clustering-algorithms]] — OnlineSpeakerClusterer DI 패턴 (SpeakerEngine 내부 구성)

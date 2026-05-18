@@ -4,11 +4,12 @@ type: spec
 title: DiartAdapter asyncio 인터페이스 + RxPY 격리 명세
 status: ready
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-18
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[adr-01-diart-wrapping-strategy]]"
   - "[[adr-05-ws-race-defaults]]"
+  - "[[spec-04-clustering-algorithms]]"
   - "[[reference-04-pyannote-audio-inference]]"
   - "[[reference-08-diart-streaming-structure]]"
 tags: [spec, speaker-engine, diart, adapter, rxpy, asyncio]
@@ -53,20 +54,29 @@ class DiartAdapter:
     def __init__(
         self,
         hf_token: str,
+        clusterer: "OnlineSpeakerClusterer",
+        # DI: OnlineSpeakerClusterer 인스턴스 외부 주입 — spec-04 §2-2 에 박힌
+        # "centroid state 는 online.py 만 보유" 정책 준수.
+        # SpeakerEngine 이 1 instance 생성 후 DiartAdapter / AdaptiveScheduler /
+        # FinalReclusterer / Identifier 가 공유.
         segmentation_model: str = "pyannote/segmentation-3.0",
         embedding_model: str = "pyannote/embedding",
-        max_speakers: int = 20,
-        # OnlineSpeakerClustering max_speakers 에 전달
         device: str | None = None,
         # None → cuda 가용하면 cuda, 아니면 cpu (SpeakerEngine.device 에서 결정된 값 전달)
         # "cuda" / "cpu" / "mps" 명시 전달 → torch.device 로 변환
         # SpeakerEngine.__init__ 에서 device 결정 후 주입 — DiartAdapter 자체는 auto-detect 없음
+        max_speakers: int | None = None,
+        # DEPRECATED — clusterer 가 max_speakers 보유.
+        # 본 인자 사용 시 DeprecationWarning + 무시. v2 에 제거 예정.
     ) -> None:
         """
-        diart.blocks 인스턴스화:
-          - SpeakerSegmentation(segmentation_model, duration=10)
-          - OverlapAwareSpeakerEmbedding(embedding_model)
-          - OnlineSpeakerClustering(max_speakers=max_speakers)
+        diart 0.9.2 API 로 blocks 인스턴스화:
+          - SegmentationModel.from_pyannote(segmentation_model, use_hf_token=hf_token)
+          - EmbeddingModel.from_pyannote(embedding_model, use_hf_token=hf_token)
+          - SpeakerSegmentation(seg_model, device=device_obj)
+            ⚠️ duration 인자 없음 (diart 0.9.2 확인) — 모델 자체에 duration 내장.
+          - OverlapAwareSpeakerEmbedding(model=emb_model, device=device_obj)
+          - OnlineSpeakerClustering 은 외부 `clusterer` 의 인스턴스 사용 (DI)
         HF 모델 로드 (hf_token 사용).
         RxPY Subject/Observable 외부 노출 금지 — 내부 변수로만 유지.
 
@@ -117,7 +127,8 @@ class WaveformBuffer:
     음원 bytes → float32 numpy 배열로 변환 후 버퍼 누적.
     window_size = 16000 * 10 (10초 × 16kHz).
     hop_size = 16000 * 1 (1초 hop).
-    window 가 채워지면 DiartAdapter.process_window() 에 전달.
+    window 가 채워지면 DiartAdapter.process_window() 호출 결과를 내부 큐에 push.
+    SpeakerEngine.stream() 이 `drain_queue()` 로 이벤트 회수.
     """
 
     def __init__(
@@ -127,7 +138,20 @@ class WaveformBuffer:
     ) -> None: ...
 
     async def feed(self, chunk: bytes) -> None:
-        """PCM bytes → float32 변환 후 내부 버퍼 append. window 채워지면 flush."""
+        """
+        PCM bytes → float32 변환 후 내부 버퍼 append.
+        window 채워지면 process_window 호출 → 결과를 내부 asyncio.Queue 에 put.
+        backpressure (R1) — queue full 시 await put.
+        """
+        ...
+
+    def drain_queue(self) -> list[RawSpeakerEvent]:
+        """
+        내부 큐에 누적된 이벤트를 한번에 회수.
+        SpeakerEngine.stream() 이 chunk feed 후 호출 — 신규 이벤트 yield 직전.
+        큐 비어있으면 빈 list.
+        non-blocking — 큐 대기 X.
+        """
         ...
 
     async def flush(self) -> list[RawSpeakerEvent]:
@@ -184,26 +208,24 @@ class RawSpeakerEvent:
 
 ```mermaid
 flowchart TD
-    IN["waveform: np.ndarray (16000*10,)"] --> SEG["SpeakerSegmentation.forward(waveform)\n→ powerset output (7-class)"]
-    SEG --> DEC["powerset → multilabel decode\n[[reference-06-powerset-decoder]]"]
-    DEC --> SPANS["화자별 활성 시간 구간 추출\n(speaker × time frame 행렬)"]
-    SPANS --> CROP["각 구간 audio crop\n+ overlap-aware mask 가중\n(OverlapAwareSpeakerEmbedding 의 audio 전처리)"]
-    CROP --> EMB["OverlapAwareSpeakerEmbedding.forward(audio)\n→ D-dim embedding"]
-    EMB --> NORM["L2 normalize\n(EmbeddingNormalization 또는 우리 명시 — §4-5)"]
-    NORM --> CLUST["OnlineSpeakerClustering.update(embedding)\n→ local_speaker_id"]
+    IN["waveform: np.ndarray (16000*10,)"] --> SEG["SpeakerSegmentation.forward(waveform)\n→ multilabel SlidingWindowFeature (T, 3)\n(PowersetAdapter 내부 변환 포함)"]
+    SEG --> SPANS["화자별 활성 시간 구간 추출\n(speaker × time frame 행렬)"]
+    SPANS --> EMB["OverlapAwareSpeakerEmbedding.forward(waveform, segmentation)\n→ (S, D) embedding tensor"]
+    EMB --> NORM["L2 normalize\n(EmbeddingNormalization 내장 + 우리 명시 — §4-5)"]
+    NORM --> CLUST["OnlineSpeakerClustering.identify(segmentation, embeddings)\n→ SpeakerMap"]
     CLUST --> RAW["RawSpeakerEvent 리스트 구성"]
     RAW --> OUT["return list[RawSpeakerEvent]"]
 ```
 
 step 상세:
 
-1. `SpeakerSegmentation(duration=10)` forward — powerset 7-class 출력 (3명 max, reference-01 §2).
-2. powerset → multilabel decode — numpy 구현 (reference-06). 화자 × frame 행렬 생성.
-3. 화자별 활성 프레임 연속 구간 추출 → `(t_start, t_end)` 목록.
-4. 각 구간 audio crop → `OverlapAwareSpeakerEmbedding` 에 전달 (mask 가중 audio).
-5. `OverlapAwareSpeakerEmbedding.forward()` → D-dim embedding.
-6. embedding L2 normalize (§4-5 참조).
-7. `OnlineSpeakerClustering.update(embedding)` → `local_speaker_id` 부여.
+1. `SpeakerSegmentation(seg_model, device=device)` forward — diart 0.9.2 의 `PowersetAdapter` 가 내부에서 powerset → multilabel 변환. 출력: `SlidingWindowFeature` (T, 3 speakers).
+2. multilabel 데이터 추출 (`SlidingWindowFeature.data`). powerset 7-class 를 직접 받는 경우 `_powerset_to_multilabel()` fallback.
+3. 화자별 활성 프레임 추출 → `(t_start, t_end)` 계산.
+4. `OverlapAwareSpeakerEmbedding.forward(waveform, segmentation)` → `(S, D)` tensor. ⚠️ segmentation 도 인자로 전달 (diart 0.9.2 시그니처).
+5. embedding L2 normalize (§4-5 참조).
+6. `OnlineSpeakerClustering.identify(seg_swf, emb_tensor)` → `SpeakerMap`. `seg_swf` 는 `SlidingWindowFeature` 필수.
+7. `SpeakerMap.valid_assignments()` → `(local_spks, global_spks)`.
 8. `RawSpeakerEvent` 구성 후 목록에 append.
 
 ### 4-2. WaveformBuffer 10초 sliding window
@@ -330,6 +352,17 @@ numpy = "*"                  # 배열 연산
 
 ---
 
+## §OQ 후속 박제 대상 (Open Questions)
+
+| ID | 질문 | 발견 시점 | 해결 시점 |
+|---|---|---|---|
+| OQ-03-1 | `DiartAdapter.__init__` 의 `max_speakers` 인자 deprecated 처리 — v2 에 완전 제거 시점 | 2026-05-17 E-03 DI 리팩토링 | v2 |
+| OQ-03-2 | Python 3.14 + torchaudio 비호환 (`list_audio_backends` AttributeError) — `_DIART_OK` flag 로 graceful degradation. torchaudio 또는 pyannote 업스트림 픽스 대기 | 2026-05-17 E-01 구현 | upstream fix 후 |
+| OQ-03-3 | `RawSpeakerEvent` 의 위치 — `diart_adapter.py` 내부 (현재) vs `types.py` 통합. SpeakerEngine 내부 전용이라 현재 위치 유지. v2 사용처 직접 호출 시 재검토 | 2026-05-17 E-01 구현 | v2 |
+| OQ-03-4 | `reference-08-diart-streaming-structure` 의 diart 분석은 더 옛 버전 기준 — diart 0.9.2 와 시그니처 mismatch 5건 확인 (PLAN-003-T-022): `SpeakerSegmentation` duration 인자 제거, `OverlapAwareSpeakerEmbedding` segmentation 인자 추가, `OnlineSpeakerClustering` n→max_speakers, `PowersetAdapter` 내부 변환 유무, SlidingWindowFeature 필수 여부. reference-08 갱신 또는 outdated 표기 검토 | 2026-05-18 T-022 | reference-08 재분석 task |
+
+---
+
 ## §8 참조
 
 - [[planning-02-speaker-engine]] §3.5 diart 래핑 전략, §9 디렉토리 구조
@@ -341,3 +374,4 @@ numpy = "*"                  # 배열 연산
 - [[reference-07-pyannote-embedding-code]] — D=512/256, L2 정규화 미적용 확인
 - [[spec-01-speaker-engine-api]] — DiartAdapter 를 호출하는 SpeakerEngine stream 흐름
 - [[spec-02-speaker-store-schema]] — embedding find_match 에 전달되는 RawSpeakerEvent.embedding
+- [[spec-04-clustering-algorithms]] §2-2 — `clusterer` DI 정책 (centroid state 단일 owner)

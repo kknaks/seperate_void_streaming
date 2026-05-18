@@ -1,6 +1,6 @@
 # medi_docs/_map.md
 
-> 갱신 (spec-05 + plan-01 ready, 2026-05-17). test strategy 박제 + plan-01 status draft→ready. 모든 Wave 발주 차단 해제 + V-01 튜닝 워크플로우 박힘.
+> 갱신 (spec 정합 라운드 PLAN-003, 2026-05-18). E-01~E-06 + H-01~H-05 구현 발견 사항 spec-01/02/03 §OQ 박제. 누적 발견 4건 (DiartAdapter DI / WaveformBuffer.drain_queue / sqlite-vec PARTITION KEY / MultiDeviceMerge source 주입). 코드 변경 X — 명세 동기화만.
 
 _총 16 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 0 / test 0 / release-notes 0 / retrospective 0)_
 
@@ -28,9 +28,9 @@ _총 16 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 0 / te
 
 ### spec — 5
 
-- `spec-01-speaker-engine-api.md` _(status: ready)_
-- `spec-02-speaker-store-schema.md` _(status: ready)_
-- `spec-03-diart-adapter.md` _(status: ready)_
+- `spec-01-speaker-engine-api.md` _(status: ready, §OQ 2건 박제)_
+- `spec-02-speaker-store-schema.md` _(status: ready, §OQ 2건 박제)_
+- `spec-03-diart-adapter.md` _(status: ready, §2-1/§2-2 갱신 + §OQ 3건 박제)_
 - `spec-04-clustering-algorithms.md` _(status: ready)_
 - `spec-05-test-strategy.md` _(status: ready)_
 

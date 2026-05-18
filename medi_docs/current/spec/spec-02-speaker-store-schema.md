@@ -341,6 +341,15 @@ flowchart TD
 
 ---
 
+## §OQ 후속 박제 대상 (Open Questions)
+
+| ID | 질문 | 발견 시점 | 해결 시점 |
+|---|---|---|---|
+| OQ-02-1 | spec-02 §3-3 SQLite DDL 의 `speaker_id TEXT PARTITION KEY` 는 sqlite-vec `vec0` 가상 테이블의 ANN 필터링 전용 컬럼이라 standard WHERE/UPDATE/DELETE 쿼리 불가. S-03 워커가 `speaker_vss_meta(speaker_id, vec_rowid)` 보조 테이블로 우회 구현 (DELETE/UPDATE 시 rowid 경유). DDL 박제를 보조 테이블 포함 형태로 정정할지, 보조 테이블 패턴을 정식 spec 으로 격상할지 결정 필요 | 2026-05-18 S-03 구현 시 | 다음 spec 정합성 라운드 — architect 협의 |
+| OQ-02-2 | `MemoryStore._anon_counter` / `SqliteVecStore._anon_counter` 단일 lock 없는 동시성 — MVP 1 process 1 session 가정 ([[planning-02-speaker-engine]] §574). 다중 세션 사용 시 `asyncio.Lock` 추가 필요 | 2026-05-18 S-02/S-03 구현 시 | v2 다중 세션 도입 시점 |
+
+---
+
 ## §7 참조
 
 - [[planning-02-speaker-engine]] §5 SpeakerStore, §9 디렉토리 구조
