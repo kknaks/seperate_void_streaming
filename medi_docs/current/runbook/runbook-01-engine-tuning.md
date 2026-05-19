@@ -115,11 +115,10 @@ T-023~T-024c 과정을 거쳐 달성한 내용:
 - **customer SLA 정의 확인**: collar / skip_overlap / dataset / 평균 방식 명확화 (현 가정: pyannote 표준)
 - **multi-session corpus tuning**: 단일 session proxy 한계 명확 → 도메인 corpus 확보 후 grid 재실행
 - **구조 fix 후보** (도메인 측정으로 정당화될 경우):
-  - Bug-A: pyannote segmentation onset/offset 조정 또는 VAD layer 추가
-  - **pyannote-3.1 wrap 전환 (DiartAdapter 교체)** — §3-2 결과 pyannote-3.1 corpus avg 12.89% 로 SLA 통과 → 우선순위 ↑
-  - 새 모델 (재학습 또는 다른 backbone)
+  - Bug-A: pyannote segmentation onset/offset 조정 또는 VAD layer 추가 — 실시간 호환 (chunk-by-chunk 유지)
+  - 새 모델 (재학습 또는 다른 backbone) — 실시간 호환 확인 필요
 
-> **업데이트 (2026-05-19 T-024c 완료)**: pyannote-3.1 4 session corpus avg = **12.89%** → AMI 기준 SLA <15% 통과. 우리 wrap 전환 시 동일 수준 도달 가능 (이론상). 단 AMI ≠ 의료 도메인 — 의료 audio 측정으로 최종 검증 필요.
+> **pyannote-3.1 official pipeline 전환 옵션 폐기 (2026-05-19)**: T-024c 측정 결과 corpus avg 12.89% 도달 가능하나, **offline batch pipeline** 으로 elapsed 2475s vs audio 1272s (1.94× real-time) — 우리 KPI "실시간 지연 < 2초" 위반. streaming 호환 X 라 wrap 전환 자체 불가능. 정확도 개선 후보에서 제외.
 
 ---
 
