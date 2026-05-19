@@ -70,13 +70,17 @@ T-023~T-024c 과정을 거쳐 달성한 내용:
 
 ### §3-2. multi-session corpus
 
-| session | duration | 화자 수 | 우리 DER | pyannote-3.1 DER |
-|---|---|---|---|---|
-| ES2002a | 1272.6s | 4 | 20.89% | 16.68% |
-| ES2003a | 1139.8s | 4 | 17.19% | (admin append) |
-| ES2008a | 1043.4s | 4 | **10.16%** | (admin append) |
-| IS1000a | 1582.7s | 4 | **31.55%** | (admin append) |
-| **corpus avg** | — | — | **19.95% ±7.73%p** | (admin append) |
+| session | duration | ref 화자 | 우리 DER | pyannote-3.1 DER | n_spk detected (p3.1) | 격차 |
+|---|---|---|---|---|---|---|
+| ES2002a | 1272.6s | 4 | 20.89% | 16.68% | 4 | +4.21%p |
+| ES2003a | 1139.8s | 4 | 17.19% | **8.12%** | 4 | +9.07%p |
+| ES2008a | 1043.4s | 4 | **10.16%** | **8.49%** | 5 | +1.67%p |
+| IS1000a | 1582.7s | 4 | **31.55%** | 18.26% | 5 | +13.29%p |
+| **corpus avg** | — | — | **19.95% ±7.73%p** | **12.89%** | — | **+7.06%p** |
+
+**outcome 분기 (ε)** — 우리 corpus avg 19.95% (≈20%) + pyannote-3.1 corpus avg **12.89% ≤ SLA 15% 통과**.
+→ pyannote-3.1 wrap 전환 (DiartAdapter 교체) 으로 SLA 달성 가능 (AMI 기준, 이론상).
+→ ES2002a 만 봤을 때 (16.68%) 결론과 다름 — multi-session corpus avg 가 더 좋음. 단일 session 단정의 위험성 확인.
 
 ### §3-3. grid sweep 결과
 
@@ -112,8 +116,10 @@ T-023~T-024c 과정을 거쳐 달성한 내용:
 - **multi-session corpus tuning**: 단일 session proxy 한계 명확 → 도메인 corpus 확보 후 grid 재실행
 - **구조 fix 후보** (도메인 측정으로 정당화될 경우):
   - Bug-A: pyannote segmentation onset/offset 조정 또는 VAD layer 추가
-  - pyannote-3.1 wrap 전환 (DiartAdapter 교체)
+  - **pyannote-3.1 wrap 전환 (DiartAdapter 교체)** — §3-2 결과 pyannote-3.1 corpus avg 12.89% 로 SLA 통과 → 우선순위 ↑
   - 새 모델 (재학습 또는 다른 backbone)
+
+> **업데이트 (2026-05-19 T-024c 완료)**: pyannote-3.1 4 session corpus avg = **12.89%** → AMI 기준 SLA <15% 통과. 우리 wrap 전환 시 동일 수준 도달 가능 (이론상). 단 AMI ≠ 의료 도메인 — 의료 audio 측정으로 최종 검증 필요.
 
 ---
 
