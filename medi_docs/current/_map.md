@@ -2,9 +2,13 @@
 
 > 갱신 (spec 정합 라운드 PLAN-003, 2026-05-18). E-01~E-06 + H-01~H-05 구현 발견 사항 spec-01/02/03 §OQ 박제. 누적 발견 4건 (DiartAdapter DI / WaveformBuffer.drain_queue / sqlite-vec PARTITION KEY / MultiDeviceMerge source 주입). 코드 변경 X — 명세 동기화만.
 
-_총 16 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 0 / test 0 / release-notes 0 / retrospective 0)_
+_총 17 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
 
 ## 카테고리별
+
+### runbook — 1
+
+- `runbook-01-engine-tuning.md` _(V-01 DER baseline + grid sweep + 한계 박제, 2026-05-19)_
 
 ### planning — 2
 
@@ -126,4 +130,14 @@ spec-05-test-strategy (status: ready)
   ← adr-01-diart-wrapping-strategy (mock 경계)
   ← adr-05-ws-race-defaults (R1~R5 integration 검증)
   ← adr-08-final-recluster-strategy OQ-08-1 (튜닝 대상)
+
+runbook-01-engine-tuning (V-01 closure, 2026-05-19)
+  ← planning-02-speaker-engine (§10 DER 목표)
+  ← plan-01-speaker-engine (§2 Phase 6 V-01)
+  ← spec-05-test-strategy (§3·§6 측정 정책)
+  ← spec-04-clustering-algorithms (§OQ-04-1/2 튜닝 대상)
+  ← adr-08-final-recluster-strategy (OQ-08-1 튜닝 대상)
+  → spec-04-clustering-algorithms §OQ-04-2 (closed)
+  → spec-04-clustering-algorithms §OQ-04-1 (deferred)
+  → adr-08-final-recluster-strategy OQ-08-1 (deferred)
 ```

@@ -157,6 +157,8 @@ def main() -> None:
         print(f"[download_ami] {session} 위치 자동 탐색 중 (느릴 수 있음)...")
         result = _find_session_in_split("diarizers-community/ami", "train", session, hf_token)
         if result is None:
+            result = _find_session_in_split("diarizers-community/ami", "validation", session, hf_token)
+        if result is None:
             result = _find_session_in_split("diarizers-community/ami", "test", session, hf_token)
         if result is None:
             print(f"ERROR: {session} 을 diarizers-community/ami 에서 찾지 못했습니다.", file=sys.stderr)

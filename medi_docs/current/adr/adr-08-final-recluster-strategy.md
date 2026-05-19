@@ -4,7 +4,7 @@ type: adr
 title: 세션 종료 재정렬 = HDBSCAN + online 라벨 Hungarian 보존
 status: accepted
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-19
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[spec-01-speaker-engine-api]]"
@@ -90,11 +90,11 @@ tags: [adr, decision, speaker-engine, clustering, hdbscan, final-recluster]
 
 ## Open Questions
 
-| ID | 질문 | 해결 시점 |
-|---|---|---|
-| OQ-08-1 | HDBSCAN `cluster_selection_epsilon=0.3` 의 의료 도메인 최적값 | v1 릴리스 후 DER 측정 — `spec-05-test-strategy` (todo) |
-| OQ-08-2 | duration weighted mean 의 weight 함수 — linear vs log-scale | 실측 후 결정. spec-04 §4.5 에 linear 박제 |
-| OQ-08-3 | Hungarian 매칭 후 unmapped final cluster 처리 — 새 letter 발급? | 일단 새 letter 발급 (A~T 중 미사용 letter). spec-04 §4.5 박제 |
+| ID | 질문 | 상태 | closure 근거 / 해결 시점 |
+|---|---|---|---|
+| OQ-08-1 | HDBSCAN `cluster_selection_epsilon=0.3` 의 의료 도메인 최적값 | **deferred (v1.1)** | [[runbook-01-engine-tuning]] §5: 도메인 audio 측정 후 재튜닝 |
+| OQ-08-2 | duration weighted mean 의 weight 함수 — linear vs log-scale | open | 실측 후 결정. spec-04 §4.5 에 linear 박제 |
+| OQ-08-3 | Hungarian 매칭 후 unmapped final cluster 처리 — 새 letter 발급? | open | 새 letter 발급 (A~T 중 미사용 letter). spec-04 §4.5 박제 |
 
 ---
 

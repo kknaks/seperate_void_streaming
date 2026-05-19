@@ -44,6 +44,7 @@ class DERResult:
     slice_seconds: float | None  # 사용한 slice 길이 (None = full session)
     duration_seconds: float  # 실제 처리한 audio 길이
     elapsed_seconds: float   # wall-clock 측정 시간
+    slice_start_seconds: float = 0.0  # slice 시작점 (T-024b). slice_seconds=None 시 무시.
 
     def to_jsonl(self) -> str:
         """1 result → JSONL 1줄 (T-024 sweep append 용)."""
@@ -68,8 +69,16 @@ class _UtteranceRecord:
     t_end: float
 
 
-def _load_audio_mono16k(wav_path: Path, slice_seconds: float | None) -> np.ndarray:
-    """torchaudio 로 WAV 읽기 → 16kHz mono float32 numpy."""
+def _load_audio_mono16k(
+    wav_path: Path,
+    slice_seconds: float | None,
+    slice_start_seconds: float = 0.0,
+) -> np.ndarray:
+    """torchaudio 로 WAV 읽기 → 16kHz mono float32 numpy.
+
+    slice_seconds=None: full session (slice_start_seconds 무시).
+    slice_seconds=N, slice_start_seconds=S: 샘플 [S*sr, (S+N)*sr) 구간 반환.
+    """
     import torch
     import torchaudio
 
@@ -86,14 +95,25 @@ def _load_audio_mono16k(wav_path: Path, slice_seconds: float | None) -> np.ndarr
     waveform = waveform[0]  # (samples,)
 
     if slice_seconds is not None:
-        n_samples = int(slice_seconds * SAMPLE_RATE)
-        waveform = waveform[:n_samples]
+        start = int(slice_start_seconds * SAMPLE_RATE)
+        end = start + int(slice_seconds * SAMPLE_RATE)
+        waveform = waveform[start:end]
 
     return waveform.numpy().astype(np.float32)
 
 
-def _load_reference(rttm_path: Path, session: str, slice_seconds: float | None):
-    """RTTM → pyannote.core.Annotation (선택적 crop)."""
+def _load_reference(
+    rttm_path: Path,
+    session: str,
+    slice_seconds: float | None,
+    slice_start_seconds: float = 0.0,
+):
+    """RTTM → pyannote.core.Annotation (선택적 crop).
+
+    slice_seconds=None: full session (slice_start_seconds 무시).
+    slice_seconds=N, slice_start_seconds=S: Segment(S, S+N) crop. 원본 timestamps 보존.
+    hypothesis 도 slice_start_seconds 만큼 offset 되므로 둘이 session-absolute 시간축에서 정렬됨.
+    """
     from pyannote.core import Segment
     from pyannote.database.util import load_rttm
 
@@ -108,7 +128,7 @@ def _load_reference(rttm_path: Path, session: str, slice_seconds: float | None):
         raise ValueError(f"RTTM 파일에 annotation 없음: {rttm_path}")
 
     if slice_seconds is not None:
-        ref = ref.crop(Segment(0.0, slice_seconds))
+        ref = ref.crop(Segment(slice_start_seconds, slice_start_seconds + slice_seconds))
 
     return ref
 
@@ -191,6 +211,7 @@ async def evaluate(
     config: TuningConfig,
     session_dir: Path,
     slice_seconds: float | None = None,
+    slice_start_seconds: float = 0.0,
     hf_token: str | None = None,
     der_collar: float = 0.25,
     der_skip_overlap: bool = True,
@@ -202,7 +223,8 @@ async def evaluate(
     Args:
         config: 튜닝 파라미터 (delta_new, hungarian_threshold, hdbscan_epsilon).
         session_dir: audio.wav + reference.rttm 가 위치한 디렉토리.
-        slice_seconds: None 이면 전체 session. 양수면 [0, slice_seconds] 만 사용.
+        slice_seconds: None 이면 전체 session (slice_start_seconds 무시). 양수면 slice_start_seconds 부터 slice_seconds 길이 사용.
+        slice_start_seconds: slice 시작 초 (기본 0). slice_seconds=None 이면 무시.
         hf_token: DiartAdapter 모델 로딩용. None 이면 HF_TOKEN 환경변수 사용.
         der_collar: DiarizationErrorRate collar (seconds). pyannote AMI 벤치마크 표준 = 0.25.
         der_skip_overlap: DiarizationErrorRate skip_overlap. pyannote AMI 벤치마크 표준 = True.
@@ -233,8 +255,8 @@ async def evaluate(
     t0 = time.perf_counter()
 
     # --- 1. 오디오 + reference 로드 ---
-    waveform = _load_audio_mono16k(wav_path, slice_seconds)
-    reference = _load_reference(rttm_path, session, slice_seconds)
+    waveform = _load_audio_mono16k(wav_path, slice_seconds, slice_start_seconds)
+    reference = _load_reference(rttm_path, session, slice_seconds, slice_start_seconds)
     duration_seconds = float(len(waveform)) / SAMPLE_RATE
 
     # --- 2. DiartAdapter 초기화 (config.delta_new → OnlineSpeakerClusterer) ---
@@ -264,10 +286,11 @@ async def evaluate(
 
         for ev in events:
             uid = str(uuid4())
-            abs_t_start = t_window_start + ev.t_start
-            abs_t_end = t_window_start + ev.t_end
-            # clip to actual audio duration
-            abs_t_end = min(abs_t_end, duration_seconds)
+            # offset to session-absolute time so hypothesis aligns with reference crop
+            abs_t_start = t_window_start + ev.t_start + slice_start_seconds
+            abs_t_end = t_window_start + ev.t_end + slice_start_seconds
+            # clip to session-absolute end of the slice
+            abs_t_end = min(abs_t_end, slice_start_seconds + duration_seconds)
             if abs_t_end <= abs_t_start:
                 continue
 
@@ -311,4 +334,5 @@ async def evaluate(
         slice_seconds=slice_seconds,
         duration_seconds=duration_seconds,
         elapsed_seconds=elapsed,
+        slice_start_seconds=slice_start_seconds,
     )

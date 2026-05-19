@@ -4,7 +4,7 @@ type: spec
 title: Clustering Algorithms 정책 명세 — Online / AdaptiveRecluster / FinalRecluster + 컴포넌트 책임 경계
 status: ready
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-19
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[spec-01-speaker-engine-api]]"
@@ -253,14 +253,14 @@ yield LabelChange* (reason="recluster")
 
 ## §OQ 후속 박제 대상 (Open Questions)
 
-| ID | 질문 | 해결 시점 |
-|---|---|---|
-| OQ-04-1 | `delta_new` cosine distance 환산 임계 — 의료 도메인 최적값 | DER 베이스라인 측정 후 (spec-05-test-strategy todo) |
-| OQ-04-2 | Hungarian cost threshold (default 0.5) 의 의료 도메인 최적값 | 동상 |
-| OQ-04-3 | HDBSCAN noise 흡수 후 centroid 재계산 정책 — v1 은 흡수 전 centroid 사용 | v2 에 noise 비율 측정 후 |
-| OQ-04-4 | duration weight 함수 — linear vs log-scale ([[adr-08-final-recluster-strategy]] OQ-08-2 동일) | linear 유지, 실측 후 재검토 |
-| OQ-04-5 | scheduler / final / identifier 의 클래스 API 형태 (메서드 시그니처 / config 객체 / override 인자 prefix) | **구현 단계 결정** — 본 spec 의 정책을 만족하는 한 워커 자유도 |
-| OQ-04-6 | utterance buffer entry 의 내부 dataclass 형태 (lock 플래그 / 라벨 / embedding 보관 등) | **구현 단계 결정** — SpeakerEngine 내부 |
+| ID | 질문 | 상태 | closure 근거 / 해결 시점 |
+|---|---|---|---|
+| OQ-04-1 | `delta_new` cosine distance 환산 임계 — 의료 도메인 최적값 | **deferred (v1.1)** | [[runbook-01-engine-tuning]] §5: 도메인 audio 측정 후 재튜닝 |
+| OQ-04-2 | Hungarian cost threshold (default 0.5) 의 의료 도메인 최적값 | **closed (V-01)** | [[runbook-01-engine-tuning]] §3-3 + §4-(3): pyannote.metrics label-invariance 로 DER eval 에서 grid tuning 무의미. 실시간 streaming label consistency 에는 유효. 별도 metric (label-fixed DER) 도입 시 v1.1 재논의 |
+| OQ-04-3 | HDBSCAN noise 흡수 후 centroid 재계산 정책 — v1 은 흡수 전 centroid 사용 | open | v2 에 noise 비율 측정 후 |
+| OQ-04-4 | duration weight 함수 — linear vs log-scale ([[adr-08-final-recluster-strategy]] OQ-08-2 동일) | open | linear 유지, 실측 후 재검토 |
+| OQ-04-5 | scheduler / final / identifier 의 클래스 API 형태 (메서드 시그니처 / config 객체 / override 인자 prefix) | **구현 단계 결정** | 본 spec 의 정책을 만족하는 한 워커 자유도 |
+| OQ-04-6 | utterance buffer entry 의 내부 dataclass 형태 (lock 플래그 / 라벨 / embedding 보관 등) | **구현 단계 결정** | SpeakerEngine 내부 |
 
 ---
 

@@ -4,7 +4,7 @@ type: planning
 title: 실시간 화자 분리 엔진 (speaker-engine) — 라이브러리 스코프
 status: draft
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-19
 sources:
   - "[[planning-01-consultation-system]]"
   - "[[reference-01-pyannote-segmentation-3]]"
@@ -569,7 +569,7 @@ pyproject.toml                  # extras: [pgvector] [sqlite] [microphone]
 | 항목 | 목표 |
 |---|---|
 | 실시간 지연 (audio in → event out) | < 1.5초 |
-| 화자 분리 정확도 (DER) | < 15% (오프라인 검증 셋) |
+| 화자 분리 정확도 (DER) | < 15% (오프라인 검증 셋) — **V-01 결과 (2026-05-19 [[runbook-01-engine-tuning]])**: AMI 4 session corpus avg = 19.95% ±7.73%p. AMI ≠ 의료 도메인. SLA 평가는 도메인 audio 측정으로 가능. v1.1+ 도메인 측정 + 구조 fix 검토 필요. |
 | Speaker 식별 정확도 (registered) | > 95% |
 | 동시 세션 지원 | 1 process = 1 세션 (스레드 안전 의무 없음, MVP) |
 | 메모리 풋프린트 | 세션당 < 500MB (모델 + embedding 버퍼) |

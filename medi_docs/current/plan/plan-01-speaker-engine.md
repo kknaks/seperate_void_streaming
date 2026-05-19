@@ -4,7 +4,7 @@ type: plan
 title: speaker_engine v1 구현 마일스톤
 status: ready
 created: 2026-05-14
-updated: 2026-05-17
+updated: 2026-05-19
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[adr-01-diart-wrapping-strategy]]"
@@ -116,7 +116,9 @@ tags: [plan, speaker-engine, milestone, v1]
 
 | ID | 산출물 | 의존성 | 추정 (단독) | 참조 |
 |---|---|---|---|---|
-| **V-01** | DER 측정 베이스라인 (AMI 단일 fixture, 목표 < 15%) + 임계값 grid search 튜닝 + spec-04/adr-08 default 갱신 + `runbook-NN-engine-tuning` 박제 | T-02 | 2일 | [[spec-05-test-strategy]] §3, §6, [[planning-02-speaker-engine]] §10, §11 |
+| **V-01** ✅ | DER 측정 베이스라인 (AMI 단일 fixture, 목표 < 15%) + 임계값 grid search 튜닝 + spec-04/adr-08 default 갱신 + `runbook-NN-engine-tuning` 박제 | T-02 | 2일 | [[spec-05-test-strategy]] §3, §6, [[planning-02-speaker-engine]] §10, §11 |
+
+> **V-01 ✅ closed (2026-05-19 [[runbook-01-engine-tuning]])**: baseline 20.89% (ES2002a), corpus avg 19.95% ±7.73%p. grid best = default → spec-04/adr-08 파라미터 변경 불필요. SLA 평가는 도메인 audio 측정 후.
 | **V-02** | `README.md` + quickstart (repo 최상위, mediness 외부) | — | 0.5일 | — |
 | **V-03** | `examples/` (`basic_chunk_stream.py` / `persist_workflow.py` / `fastapi_ws_demo.py`) | E-06 | 1일 | [[planning-02-speaker-engine]] §9 |
 | **V-04** | v0.1.0 git+ssh 첫 릴리스 태깅 | V-01, V-02, V-03 | 0.5일 | [[planning-02-speaker-engine]] §9 |
@@ -216,7 +218,7 @@ flowchart TB
 |---|---|---|---|
 | `spec-05-test-strategy` | spec | 발주 전 정책 박제 | ✅ ready (2026-05-17) |
 | `test-NN-speaker-engine` | test | M4 직전 — T-01~T-03 구체 케이스 (구현 단계 결정) | todo |
-| `runbook-NN-engine-tuning` | runbook | V-01 시점 — DER 측정 raw + grid 결과 + 분할 시드 ([[spec-05-test-strategy]] §6) | todo |
+| `runbook-01-engine-tuning` | runbook | V-01 시점 — DER 측정 raw + grid 결과 + 분할 시드 ([[spec-05-test-strategy]] §6) | ✅ **ready** (2026-05-19) |
 | `release-NN-v0.1.0` | release-notes | V-04 태깅 후 | todo |
 
 ---

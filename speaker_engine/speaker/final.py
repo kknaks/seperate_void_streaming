@@ -200,6 +200,21 @@ class FinalReclusterer:
             for r, c in zip(row_ind.tolist(), col_ind.tolist()):
                 if cost_matrix[r, c] <= self._hungarian_threshold:
                     matched[r] = c
+            if matched:
+                _matched_costs = [cost_matrix[r, matched[r]] for r in matched]
+                _LOG.debug(
+                    "FinalReclusterer Hungarian: M=%d K=%d matched=%d "
+                    "cost_min=%.4f cost_max=%.4f cost_mean=%.4f threshold=%.2f",
+                    M, K, len(matched),
+                    min(_matched_costs), max(_matched_costs),
+                    sum(_matched_costs) / len(_matched_costs),
+                    self._hungarian_threshold,
+                )
+            else:
+                _LOG.debug(
+                    "FinalReclusterer Hungarian: M=%d K=%d matched=0 (all rejected by threshold=%.2f)",
+                    M, K, self._hungarian_threshold,
+                )
 
         # --- letter 발급 ---
         used_letters: set[str] = set()
