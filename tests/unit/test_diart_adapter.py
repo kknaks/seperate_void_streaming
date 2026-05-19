@@ -514,3 +514,139 @@ class TestL2Normalize:
         v = np.zeros(4, dtype=np.float32)
         out = _l2_normalize(v)
         assert not np.isnan(out).any()
+
+
+# ── _extract_runs (Bug-B fix T-023e) ────────────────────────────────────────
+
+
+class TestExtractRuns:
+    """_extract_runs: connected component per-run 분리 (Bug-B fix)."""
+
+    def test_empty_frames_returns_empty(self):
+        from speaker_engine.diart_adapter import _extract_runs
+
+        runs = _extract_runs(np.array([], dtype=int), gap_threshold_frames=10)
+        assert runs == []
+
+    def test_single_frame(self):
+        from speaker_engine.diart_adapter import _extract_runs
+
+        runs = _extract_runs(np.array([10]), gap_threshold_frames=10)
+        assert len(runs) == 1
+        assert runs[0] == (10, 10)
+
+    def test_continuous_frames_one_run(self):
+        """연속 프레임 [10..14] → 1 run."""
+        from speaker_engine.diart_adapter import _extract_runs
+
+        frames = np.array([10, 11, 12, 13, 14])
+        runs = _extract_runs(frames, gap_threshold_frames=10)
+        assert len(runs) == 1
+        assert runs[0] == (10, 14)
+
+    def test_sparse_frames_two_runs(self):
+        """gap 38 > threshold 10 → 2 runs."""
+        from speaker_engine.diart_adapter import _extract_runs
+
+        frames = np.array([10, 11, 12, 50, 51, 52])
+        runs = _extract_runs(frames, gap_threshold_frames=10)
+        assert len(runs) == 2
+        assert runs[0] == (10, 12)
+        assert runs[1] == (50, 52)
+
+    def test_within_threshold_gap_merges(self):
+        """gap 5 ≤ threshold 10 → 1 run."""
+        from speaker_engine.diart_adapter import _extract_runs
+
+        frames = np.array([10, 11, 15, 16])  # gap = 4 ≤ 10
+        runs = _extract_runs(frames, gap_threshold_frames=10)
+        assert len(runs) == 1
+        assert runs[0] == (10, 16)
+
+    def test_three_runs(self):
+        """두 개의 큰 gap → 3 runs."""
+        from speaker_engine.diart_adapter import _extract_runs
+
+        frames = np.array([5, 6, 7, 50, 51, 100, 101, 102])
+        runs = _extract_runs(frames, gap_threshold_frames=10)
+        assert len(runs) == 3
+        assert runs[0] == (5, 7)
+        assert runs[1] == (50, 51)
+        assert runs[2] == (100, 102)
+
+
+# ── per-run process_window 통합 (Bug-B fix T-023e) ──────────────────────────
+
+
+class TestPerRunProcessWindow:
+    """sparse active frames 가 multiple events 로 분리되는지 검증."""
+
+    async def test_sparse_speaker_two_events(self):
+        """frames [10..12, 50..52] (gap=37 > threshold=10) → 2 events."""
+        from speaker_engine.diart_adapter import RawSpeakerEvent
+
+        adapter = _make_adapter()
+
+        seg = np.zeros((1, NUM_FRAMES, 3), dtype=np.float32)
+        seg[0, 10:13, 0] = 1.0  # frames 10, 11, 12
+        seg[0, 50:53, 0] = 1.0  # frames 50, 51, 52 (gap=37)
+        adapter._segmentation._call_result = seg
+
+        mock_map = MagicMock()
+        mock_map.valid_assignments.return_value = (np.array([0]), np.array([0]))
+        adapter._clusterer._inner._identify_result = mock_map
+
+        result = await adapter.process_window(_flat_waveform())
+        assert len(result) == 2, f"sparse frames 가 2 events 여야 하는데 {len(result)}개"
+        assert all(isinstance(e, RawSpeakerEvent) for e in result)
+        # 첫 번째 run 이 두 번째 run 보다 앞
+        assert result[0].t_end <= result[1].t_start
+
+    async def test_continuous_speaker_one_event(self):
+        """연속 frames → 1 event (기존 동작 회귀 없음)."""
+        adapter = _make_adapter()
+
+        seg = np.zeros((1, NUM_FRAMES, 3), dtype=np.float32)
+        seg[0, 10:50, 0] = 1.0  # frames 10..49 연속
+        adapter._segmentation._call_result = seg
+
+        mock_map = MagicMock()
+        mock_map.valid_assignments.return_value = (np.array([0]), np.array([0]))
+        adapter._clusterer._inner._identify_result = mock_map
+
+        result = await adapter.process_window(_flat_waveform())
+        assert len(result) == 1
+
+    async def test_two_speakers_asymmetric_runs(self):
+        """spk0: 연속 (1 event), spk1: sparse (2 events) → 총 3 events."""
+        adapter = _make_adapter()
+
+        seg = np.zeros((1, NUM_FRAMES, 3), dtype=np.float32)
+        seg[0, 10:50, 0] = 1.0   # spk0 연속 → 1 event
+        seg[0, 10:13, 1] = 1.0   # spk1 첫 run
+        seg[0, 80:83, 1] = 1.0   # spk1 두 번째 run (gap=67 > 10)
+        adapter._segmentation._call_result = seg
+
+        mock_map = MagicMock()
+        mock_map.valid_assignments.return_value = (np.array([0, 1]), np.array([0, 1]))
+        adapter._clusterer._inner._identify_result = mock_map
+
+        result = await adapter.process_window(_flat_waveform())
+        assert len(result) == 3  # spk0: 1 + spk1: 2
+
+    async def test_per_run_embedding_shared(self):
+        """같은 화자의 복수 run 은 동일 embedding 을 공유."""
+        adapter = _make_adapter()
+
+        seg = np.zeros((1, NUM_FRAMES, 3), dtype=np.float32)
+        seg[0, 10:13, 0] = 1.0
+        seg[0, 50:53, 0] = 1.0
+        adapter._segmentation._call_result = seg
+
+        mock_map = MagicMock()
+        mock_map.valid_assignments.return_value = (np.array([0]), np.array([0]))
+        adapter._clusterer._inner._identify_result = mock_map
+
+        result = await adapter.process_window(_flat_waveform())
+        assert len(result) == 2
+        np.testing.assert_array_equal(result[0].embedding, result[1].embedding)

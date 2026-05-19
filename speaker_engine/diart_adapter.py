@@ -79,6 +79,33 @@ def _waveform_to_pcm_bytes(waveform: np.ndarray) -> bytes:
     return (clipped * 32767).astype(np.int16).tobytes()
 
 
+def _extract_runs(
+    active_frames: np.ndarray,
+    gap_threshold_frames: int = 10,
+) -> list[tuple[int, int]]:
+    """active frame indices → (run_start, run_end) 쌍 목록.
+
+    gap_threshold_frames 보다 큰 연속 간격이 있으면 별도 run 으로 분리.
+    Bug-B fix (T-023e): sparse active frames 의 range expansion 방지.
+    """
+    if len(active_frames) == 0:
+        return []
+
+    runs: list[tuple[int, int]] = []
+    run_start = int(active_frames[0])
+    prev = int(active_frames[0])
+
+    for f in active_frames[1:]:
+        f_int = int(f)
+        if f_int - prev > gap_threshold_frames:
+            runs.append((run_start, prev))
+            run_start = f_int
+        prev = f_int
+
+    runs.append((run_start, prev))
+    return runs
+
+
 class DiartAdapter:
     """diart SpeakerSegmentation + OverlapAwareSpeakerEmbedding 래퍼.
 
@@ -94,6 +121,7 @@ class DiartAdapter:
         embedding_model: str = "pyannote/embedding",
         device: str | None = None,
         max_speakers: int | None = None,  # deprecated — clusterer 에 설정하세요
+        gap_threshold_frames: int = 10,
     ) -> None:
         if max_speakers is not None:
             warnings.warn(
@@ -139,6 +167,7 @@ class DiartAdapter:
 
         self._clusterer = clusterer
         self._max_speakers = clusterer._max_speakers  # delegated from clusterer
+        self._gap_threshold_frames = gap_threshold_frames
         self._closed = False
         self._embedding_dim: int | None = None
 
@@ -270,7 +299,10 @@ class DiartAdapter:
         speaker_map = self._clusterer.identify(seg_for_clustering, emb_tensor)
         local_spks, global_spks = speaker_map.valid_assignments()
 
-        # ── 7. RawSpeakerEvent 구성 ──────────────────────────────────────
+        # ── 7. RawSpeakerEvent 구성 (per-run — Bug-B fix T-023e) ───────────
+        # embedding 은 OverlapAwareSpeakerEmbedding 이 window 단위로 반환하는
+        # per-speaker 값을 그대로 재사용 (run 별 별도 forward 없음 —
+        # 동일 화자의 run 들은 embedding 이 동일해도 무방, forward 비용 절감).
         events: list[RawSpeakerEvent] = []
         for l_spk, g_spk in zip(local_spks, global_spks):
             if l_spk >= num_local_speakers:
@@ -280,29 +312,37 @@ class DiartAdapter:
             if len(active_frames) == 0:
                 continue
 
-            t_start = float(active_frames[0]) / num_frames * 10.0
-            t_end = float(active_frames[-1] + 1) / num_frames * 10.0
-            confidence = float(np.mean(activity[active_frames]))
-
-            start_sample = int(active_frames[0] / num_frames * WINDOW_SAMPLES)
-            end_sample = int((active_frames[-1] + 1) / num_frames * WINDOW_SAMPLES)
-            audio_bytes = _waveform_to_pcm_bytes(waveform[start_sample:end_sample])
-
             if l_spk < len(emb_normalized) and emb_normalized.ndim == 2:
                 embedding = _l2_normalize(emb_normalized[l_spk]).astype(np.float32)
             else:
                 embedding = np.zeros(self.embedding_dim, dtype=np.float32)
 
-            events.append(
-                RawSpeakerEvent(
-                    local_speaker_id=int(g_spk),
-                    embedding=embedding,
-                    audio=audio_bytes,
-                    t_start=t_start,
-                    t_end=t_end,
-                    confidence=confidence,
+            # per-run: split sparse active frames into connected components
+            runs = _extract_runs(active_frames, self._gap_threshold_frames)
+            for run_start, run_end in runs:
+                t_start = float(run_start) / num_frames * 10.0
+                t_end = float(run_end + 1) / num_frames * 10.0
+
+                # confidence: mean over active frames inside this run only
+                run_active = active_frames[
+                    (active_frames >= run_start) & (active_frames <= run_end)
+                ]
+                confidence = float(np.mean(activity[run_active]))
+
+                start_sample = int(run_start / num_frames * WINDOW_SAMPLES)
+                end_sample = int((run_end + 1) / num_frames * WINDOW_SAMPLES)
+                audio_bytes = _waveform_to_pcm_bytes(waveform[start_sample:end_sample])
+
+                events.append(
+                    RawSpeakerEvent(
+                        local_speaker_id=int(g_spk),
+                        embedding=embedding,
+                        audio=audio_bytes,
+                        t_start=t_start,
+                        t_end=t_end,
+                        confidence=confidence,
+                    )
                 )
-            )
 
         return events
 

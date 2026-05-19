@@ -37,4 +37,5 @@ testpaths = ["tests"]
 markers = [
     "integration: 실 diart 모델 / HF_TOKEN 필요 (spec-05 §2 integration 카테고리)",
     "live: 실 인프라 (pgvector DB / HF Hub) 필요 (spec-05 §2 live 카테고리)",
+    "eval: DER 측정 (AMI dataset + 실 diart 모델, ~수분/run, HF_TOKEN 필요)",
 ]

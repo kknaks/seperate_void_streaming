@@ -38,3 +38,5 @@ htmlcov/
 samples/*.wav
 samples/*.rttm
 !samples/.gitkeep
+tests/data/ami/
+tests/eval/results.jsonl
