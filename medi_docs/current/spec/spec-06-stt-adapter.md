@@ -174,13 +174,17 @@ integration 테스트는 `ELEVENLABS_API_KEY` 환경변수 존재 확인 후 ski
 
 ---
 
-## §OQ-06-2 — ElevenLabs WS 재연결 정책 + partial/final 노출 (미결, 워커 결정)
+## §OQ-06-2 — ElevenLabs WS 재연결 정책 + partial/final 노출 (결정 확정, 2026-05-20)
 
-> **Status**: 미결 — 구현 워커 결정 후 본 spec 갱신 요청.
+> **Status**: **결정 확정** — stt-adapter 워커 (PLAN-004-T-008), 2026-05-20.
 >
-> **항목 1 — WS 재연결**: A) fail-fast (세션 에러 처리) / B) 지수 백오프 재연결. 워커 결정.
+> **항목 1 — WS 재연결**: **A) fail-fast** (세션 에러 처리). 지수 백오프 재연결 미채택.
+> 근거: 데모는 단일 세션 (파일 업로드 1회). 재연결 중 누락된 PCM 구간 복구가 불가능하므로 세션 에러로 즉시 처리하는 것이 정직한 동작. `stream()` 메서드에서 WS 연결 끊김 시 예외 전파 (fail-fast).
 >
-> **항목 2 — partial vs final 노출**: UI 에 partial 을 실시간 표시할지, final 만 전달할지. `spec-07 §4` UI 요구사항과 연동 결정.
+> **항목 2 — partial vs final 노출**: **둘 다 emit** (partial + final). final 만 전달 미채택.
+> 근거: `spec-07 §4` UI 요구사항 — "우-상 STT 자막: `is_final=false` 이면 partial 갱신, `true` 이면 확정". partial 을 실시간 표시해야 UX 가 자연스러움. `Transcript.is_final` 로 구분 가능하므로 소비자 선택권 보장.
+>
+> **구현 반영**: `server/stt/elevenlabs.py` `_parse_message()` — `partial_transcript` → `is_final=False`, `committed_transcript_with_timestamps` → `is_final=True` 둘 다 yield.
 
 ---
 

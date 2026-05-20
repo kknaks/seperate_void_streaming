@@ -1,5 +1,5 @@
-"""server.stt — faster-whisper STT 어댑터 (spec-06)."""
+"""server.stt — ElevenLabs streaming STT 어댑터 (spec-06)."""
 
-from server.stt.adapter import WhisperSTT
+from server.stt.elevenlabs import ElevenLabsSTT, Transcript
 
-__all__ = ["WhisperSTT"]
+__all__ = ["ElevenLabsSTT", "Transcript"]
