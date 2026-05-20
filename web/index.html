@@ -518,39 +518,68 @@
       }
     }
 
+    /* segment grouping — 같은 화자가 GAP 이내 연속 발화면 한 발화로 묶기 */
+    const SEGMENT_MERGE_GAP_S = 1.5;
+
     function onSegment(msg) {
       const { utterance_id, label, t_start, t_end } = msg;
       const color = labelColor(label);
-      const timeStr = fmtT(t_start) + '–' + fmtT(t_end);
 
-      // 우-중 발화 로그: [label] t_start–t_end
-      const mapRow = document.createElement('div');
-      mapRow.className = 'map-row';
-      mapRow.dataset.uid = utterance_id;
-      mapRow.appendChild(makeBadge(label, color));
-      const tSpan = document.createElement('span');
-      tSpan.className = 'time-str';
-      tSpan.textContent = timeStr;
-      mapRow.appendChild(tSpan);
-      mapFeed.appendChild(mapRow);
-      scrollBot(mapFeed);
+      // ── 우-중 매핑 결과 ──
+      const lastMap = mapFeed.lastElementChild;
+      const canMergeMap = lastMap
+        && lastMap.dataset.label === label
+        && t_start <= parseFloat(lastMap.dataset.tEnd) + SEGMENT_MERGE_GAP_S;
 
-      // 우-하 최종: [label] time + text placeholder (stt 이벤트 도착 시 채워짐)
-      const finalRow = document.createElement('div');
-      finalRow.className = 'final-row';
-      finalRow.dataset.uid = utterance_id;
-      finalRow.dataset.tStart = t_start;
-      finalRow.dataset.tEnd = t_end;
-      finalRow.appendChild(makeBadge(label, color));
-      const t2 = document.createElement('span');
-      t2.className = 'time-str';
-      t2.textContent = timeStr;
-      finalRow.appendChild(t2);
-      const txtSpan = document.createElement('span');
-      txtSpan.className = 'text-str';
-      finalRow.appendChild(txtSpan);
-      finalFeed.appendChild(finalRow);
-      scrollBot(finalFeed);
+      if (canMergeMap) {
+        // 같은 화자 + 인접 → row 의 t_end 연장
+        const newEnd = Math.max(parseFloat(lastMap.dataset.tEnd), t_end);
+        lastMap.dataset.tEnd = newEnd;
+        lastMap.querySelector('.time-str').textContent =
+          fmtT(parseFloat(lastMap.dataset.tStart)) + '–' + fmtT(newEnd);
+      } else {
+        const mapRow = document.createElement('div');
+        mapRow.className = 'map-row';
+        mapRow.dataset.label = label;
+        mapRow.dataset.tStart = t_start;
+        mapRow.dataset.tEnd = t_end;
+        mapRow.appendChild(makeBadge(label, color));
+        const tSpan = document.createElement('span');
+        tSpan.className = 'time-str';
+        tSpan.textContent = fmtT(t_start) + '–' + fmtT(t_end);
+        mapRow.appendChild(tSpan);
+        mapFeed.appendChild(mapRow);
+        scrollBot(mapFeed);
+      }
+
+      // ── 우-하 최종 매핑 (같은 정책) ──
+      const lastFinal = finalFeed.lastElementChild;
+      const canMergeFinal = lastFinal
+        && lastFinal.dataset.label === label
+        && t_start <= parseFloat(lastFinal.dataset.tEnd) + SEGMENT_MERGE_GAP_S;
+
+      if (canMergeFinal) {
+        const newEnd = Math.max(parseFloat(lastFinal.dataset.tEnd), t_end);
+        lastFinal.dataset.tEnd = newEnd;
+        lastFinal.querySelector('.time-str').textContent =
+          fmtT(parseFloat(lastFinal.dataset.tStart)) + '–' + fmtT(newEnd);
+      } else {
+        const finalRow = document.createElement('div');
+        finalRow.className = 'final-row';
+        finalRow.dataset.label = label;
+        finalRow.dataset.tStart = t_start;
+        finalRow.dataset.tEnd = t_end;
+        finalRow.appendChild(makeBadge(label, color));
+        const t2 = document.createElement('span');
+        t2.className = 'time-str';
+        t2.textContent = fmtT(t_start) + '–' + fmtT(t_end);
+        finalRow.appendChild(t2);
+        const txtSpan = document.createElement('span');
+        txtSpan.className = 'text-str';
+        finalRow.appendChild(txtSpan);
+        finalFeed.appendChild(finalRow);
+        scrollBot(finalFeed);
+      }
     }
 
     function onStt(msg) {
@@ -592,7 +621,10 @@
         scrollBot(sttFeed);
       }
 
-      // 우-하 최종 매핑: stt.t_start ∈ segment [t_start, t_end] 선형 검색
+      // 우-하 최종 매핑: 단어 t_start 가 어느 final-row 구간에 들어가면 그 row 의
+      // .text-str 에 append (concat). 한 단어만 표시 X → 같은 발화의 단어 누적.
+      // partial 은 매핑 안 함 (timestamps 없음).
+      if (!is_final) return;
       const finalRows = finalFeed.querySelectorAll('.final-row[data-t-start]');
       let matched = false;
       for (const row of finalRows) {
@@ -600,21 +632,29 @@
         const tE = parseFloat(row.dataset.tEnd);
         if (tS <= t_start && t_start <= tE) {
           const txtSpan = row.querySelector('.text-str');
-          if (txtSpan) txtSpan.textContent = text;
+          if (txtSpan) {
+            const cur = txtSpan.textContent || '';
+            txtSpan.textContent = cur ? cur + ' ' + text : text;
+          }
           matched = true;
           break;
         }
       }
-      // 매칭 없는 final text → orphan 행 (partial은 무시)
-      if (!matched && is_final && text && text.trim()) {
-        const orphan = document.createElement('div');
-        orphan.className = 'final-row orphan';
-        const txtSpan = document.createElement('span');
-        txtSpan.className = 'text-str';
-        txtSpan.style.color = '#8b949e';
-        txtSpan.textContent = '(미매핑) ' + text;
-        orphan.appendChild(txtSpan);
-        finalFeed.appendChild(orphan);
+      // 매칭 없는 단어 → 미매핑 orphan 행 끝에 append
+      if (!matched && text && text.trim()) {
+        let orphan = finalFeed.querySelector('.final-row.orphan');
+        if (!orphan) {
+          orphan = document.createElement('div');
+          orphan.className = 'final-row orphan';
+          const txtSpan = document.createElement('span');
+          txtSpan.className = 'text-str';
+          txtSpan.style.color = '#8b949e';
+          txtSpan.textContent = '(미매핑) ';
+          orphan.appendChild(txtSpan);
+          finalFeed.appendChild(orphan);
+        }
+        const txtSpan = orphan.querySelector('.text-str');
+        txtSpan.textContent += text + ' ';
         scrollBot(finalFeed);
       }
     }
