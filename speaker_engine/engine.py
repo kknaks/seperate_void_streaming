@@ -342,9 +342,13 @@ class SpeakerEngine:
                 online_centers=active_centers,
                 center_labels=center_labels,
             )
-        except RuntimeError as _exc:
+        except (RuntimeError, ValueError) as _exc:
+            # ValueError: 너무 짧은 wav (N=0) 에서 HDBSCAN _hdbscan_linkage 가
+            # "Invalid shape in axis 0: 0" 던짐. T-014 admin smoke (6s wav) 에서 재현.
             logger.warning(
-                "FinalReclusterer RuntimeError — online label fallback (no recluster): %s", _exc
+                "FinalReclusterer %s — online label fallback (no recluster): %s",
+                type(_exc).__name__,
+                _exc,
             )
             candidates = []
             label_changes = []
