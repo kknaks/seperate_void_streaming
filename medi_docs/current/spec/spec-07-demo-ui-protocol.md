@@ -8,7 +8,8 @@ updated: 2026-05-20
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[planning-03-demo-v04]]"
-tags: [spec, websocket, json-schema, demo-ui, protocol, pcm16]
+  - "[[spec-06-stt-adapter]]"
+tags: [spec, websocket, json-schema, demo-ui, protocol, pcm16, stt, elevenlabs]
 ---
 
 # 데모 UI WS 프로토콜 — json 이벤트 스키마 + 클라이언트 책임
@@ -29,7 +30,7 @@ ws://host/audio/{visit_id}
 |---|---|---|
 | 클라이언트 → 서버 | 바이너리 | PCM 16-bit signed LE, 16kHz, mono |
 | 클라이언트 → 서버 | 텍스트 JSON | `{"type":"eof"}` — 종료 시그널 (선택, 권장) |
-| 서버 → 클라이언트 | 텍스트 JSON | 4종 이벤트 (`utterance`, `relabel`, `done`, `error`) |
+| 서버 → 클라이언트 | 텍스트 JSON | 5종 이벤트 (`segment`, `stt`, `relabel`, `done`, `error`) |
 
 `{visit_id}` — 세션 식별자 (임의 문자열, URL-safe). 현재 데모는 영속화하지 않음 (`memory://` 스토어).
 
@@ -57,33 +58,55 @@ ws://host/audio/{visit_id}
 
 ## §3 서버 → 클라이언트 (JSON 이벤트)
 
-### utterance
+### segment (신규 — v0.1.0)
 
-발화 단위 라벨 확정 이벤트. `SpeakerSegment` 를 기반으로 STT 텍스트를 결합.
-
-anchor: `fastapi_ws_demo.py:69-79`
+화자 분리 단위 이벤트. `SpeakerSegment` 직접 직렬화. STT 텍스트 없음 — 클라이언트가 `stt` 이벤트와 시간 좌표로 결합 (§4).
 
 ```json
 {
-  "type": "utterance",
+  "type": "segment",
   "utterance_id": "string",
   "label": "string",
   "t_start": 0.0,
   "t_end": 0.0,
-  "confidence": 0.0,
-  "text": "string"
+  "confidence": 0.0
 }
 ```
 
 | 필드 | 타입 | 단위 / 범위 | 설명 |
 |---|---|---|---|
-| `type` | string | `"utterance"` | 고정값 |
-| `utterance_id` | string | UUID4 형식 | 발화 단위 식별자 |
-| `label` | string | `"registered:이름"` / `"stored:이름"` / `"auto:A"` | 화자 라벨 — LabelChange 로 소급 변경 가능 |
-| `t_start` | float | 초, session-relative (0.0~) | 발화 시작 시각 (세션 시작 기준) |
+| `type` | string | `"segment"` | 고정값 |
+| `utterance_id` | string | UUID4 형식 | 발화 단위 식별자 (relabel 과 연결) |
+| `label` | string | `"registered:이름"` / `"stored:이름"` / `"auto:A"` | 화자 라벨 — relabel 로 소급 변경 가능 |
+| `t_start` | float | 초, session-relative (0.0~) | 발화 시작 시각 |
 | `t_end` | float | 초, session-relative | 발화 종료 시각 |
 | `confidence` | float | 0.0~1.0 | 클러스터 할당 신뢰도 |
-| `text` | string | 한국어 텍스트 | STT 결과. 빈 문자열 가능 (묵음 / 인식 불가) |
+
+### stt (신규 — v0.1.0)
+
+ElevenLabs streaming STT 결과 이벤트. 화자 라벨 없음 — 클라이언트가 `segment` 이벤트와 시간 좌표로 결합 (§4).
+
+```json
+{
+  "type": "stt",
+  "t_start": 0.0,
+  "t_end": 0.0,
+  "text": "string",
+  "is_final": false
+}
+```
+
+| 필드 | 타입 | 단위 / 범위 | 설명 |
+|---|---|---|---|
+| `type` | string | `"stt"` | 고정값 |
+| `t_start` | float | 초, session-relative | STT 자체 timestamp (ElevenLabs word-level 기준) |
+| `t_end` | float | 초, session-relative | STT 자체 timestamp |
+| `text` | string | 한국어 텍스트 | 인식 텍스트. `is_final=false` 이면 partial (갱신 가능) |
+| `is_final` | boolean | | `false`: partial (실시간 갱신), `true`: 확정 텍스트 |
+
+### utterance _(deprecated v0.1.0)_
+
+> **폐기 (2026-05-20)**: `utterance` 는 STT batch `flush_window` 방식의 종속 모델. `segment` + `stt` 분리 이벤트로 대체. 구현 코드 제거는 다음 stt-adapter 워커 task.
 
 ### relabel
 
@@ -166,8 +189,10 @@ anchor: `fastapi_ws_demo.py:114`
 |---|---|
 | 파일 업로드 인풋 | `<input type="file" accept=".wav,.mp3,.m4a">` |
 | 재생 컨트롤 | 원본 오디오 재생 (업로드된 파일 기준) — 선택사항 |
-| 발화 로그 | 화자별 색상 구분 + 시간(t_start-t_end) + 텍스트 표시 |
-| relabel 소급 업데이트 | `relabel` 이벤트 수신 시 기존 발화 로그의 라벨·색상 즉시 갱신 |
+| 우-상 STT 자막 | `stt` 이벤트 실시간 표시 — `is_final=false` 이면 partial 갱신, `true` 이면 확정 |
+| 우-중 발화 로그 | `segment` 이벤트 기반 — 화자별 색상 구분 + 시간(t_start-t_end) |
+| 우-하 최종 매핑 결과 | 클라이언트가 `stt.t_start` 가 `segment` 구간 `[t_start, t_end]` 에 포함되면 같은 행에 결합 |
+| relabel 소급 업데이트 | `relabel` 이벤트 수신 시 기존 발화 로그의 라벨·색상 즉시 갱신 (`utterance_id` 기준) |
 | 종료 시 candidates 요약 | `done` 이벤트 수신 시 화자별 발화 수 + 총 시간 표 표시 |
 | 에러 표시 | `error` 이벤트 또는 WS 끊김 시 사용자에게 메시지 표시 |
 
@@ -257,3 +282,15 @@ await ws.send_json({type:"done"})      ← WebSocketDisconnect 또는 무시
 3. 클라이언트는 `done` 수신 후 WS close
 
 이 변경 전까지 클라이언트는 `done` 수신을 보장받지 못한다.
+
+---
+
+## §OQ-07-1 — STT ↔ segment 서버 매핑 layer (미결, v0.2 검토)
+
+> **Status**: 미결 — v0.1.0 은 클라이언트 책임으로 확정. v0.2 에서 재검토.
+>
+> **현재 결정 (v0.1)**: 클라이언트가 `stt.t_start` 가 `segment` 구간에 포함되는지 직접 판단 (§4 우-하 매핑).
+>
+> **v0.2 서버 매핑 layer 검토 안**: 서버가 `segment` emit 시점에 현재까지 수신한 `stt` 결과를 매핑하여 단일 이벤트로 결합. 지연 vs 클라이언트 단순화 trade-off.
+>
+> **재검토 트리거**: 클라이언트 매핑 구현 복잡도가 허용 한계 초과 시, 또는 v0.2 기능 기획 시.

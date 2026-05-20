@@ -1,6 +1,6 @@
 # medi_docs/_map.md
 
-> 갱신 (PLAN-004-T-002 architect, 2026-05-20). V-04 데모 SSOT 3문서 신규: planning-03, spec-06, spec-07. lineage 3 노드 + 4 edges 추가.
+> 갱신 (PLAN-004-T-007 architect, 2026-05-20). STT streaming 재설계: spec-06 전면 재작성 (ElevenLabs, flush_window 폐기), spec-07 §3 utterance→segment+stt 분리, planning-03 STT 엔진 결정 갱신. lineage 1 edge 추가 (spec-07←spec-06).
 
 _총 20 문서 (planning 3 / plan 1 / spec 7 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
 
@@ -38,8 +38,8 @@ _총 20 문서 (planning 3 / plan 1 / spec 7 / policy 0 / adr 8 / runbook 1 / te
 - `spec-03-diart-adapter.md` _(status: ready, §2-1/§2-2 갱신 + §OQ 3건 박제)_
 - `spec-04-clustering-algorithms.md` _(status: ready)_
 - `spec-05-test-strategy.md` _(status: ready)_
-- `spec-06-stt-adapter.md` _(V-04 데모 STT 어댑터 계약, §OQ-06-1 박제, 2026-05-20)_
-- `spec-07-demo-ui-protocol.md` _(V-04 데모 WS json schema 정식화, 2026-05-20)_
+- `spec-06-stt-adapter.md` _(ElevenLabs streaming STT 재설계, flush_window 폐기, §OQ-06-1 무효/§OQ-06-2 신설, 2026-05-20)_
+- `spec-07-demo-ui-protocol.md` _(utterance→segment+stt 분리, §OQ-07-1 신설, 2026-05-20)_
 
 ## lineage 요약
 
@@ -150,12 +150,13 @@ planning-03-demo-v04 (V-04 데모 시나리오, 2026-05-20)
   → spec-06-stt-adapter (§5 컴포넌트 경계 — stt-adapter 책임)
   → spec-07-demo-ui-protocol (§5 컴포넌트 경계 — demo-ui + WS 프로토콜)
 
-spec-06-stt-adapter (V-04 STT 어댑터 계약, 2026-05-20)
+spec-06-stt-adapter (ElevenLabs streaming STT 재설계, flush_window 폐기, 2026-05-20)
   ← planning-02-speaker-engine (§2 Out of Scope: STT, §3 Pattern B 통합)
-  ← adr-02-pattern-b-fanout-chain (fan-out 결정 인스턴스화)
-  ← planning-03-demo-v04 (§5 컴포넌트 경계 — stt-adapter 책임)
+  ← adr-02-pattern-b-fanout-chain (fan-out 결정 인스턴스화 — 독립 두 채널)
+  ← planning-03-demo-v04 (§5 컴포넌트 경계 — stt-adapter 책임, ElevenLabs 결정)
 
-spec-07-demo-ui-protocol (V-04 WS json schema, 2026-05-20)
+spec-07-demo-ui-protocol (segment+stt 분리 이벤트, §OQ-07-1 박제, 2026-05-20)
   ← planning-02-speaker-engine (§3 이벤트 2종 정의, §150 FastAPI WS demo)
   ← planning-03-demo-v04 (§3 시나리오, §4 UI 요구사항)
+  ← spec-06-stt-adapter (§3 stt 이벤트 구조, §2 시간 정렬 정책)
 ```
