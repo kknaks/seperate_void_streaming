@@ -16,7 +16,9 @@ WebSocket 연결:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+from typing import AsyncIterator
 
 try:
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -29,12 +31,39 @@ from speaker_engine import (
     LabelChange,
     SpeakerEngine,
     SpeakerSegment,
-    from_websocket,
 )
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="speaker_engine WS demo")
+
+
+async def _pcm_stream(ws: WebSocket) -> AsyncIterator[bytes]:
+    """demo-local PCM 수신 루프 — eof 텍스트 프레임 처리 (spec-07 §7 graceful close).
+
+    from_websocket 은 바이너리만 처리하므로 demo 전용으로 대체.
+    - binary: PCM bytes yield
+    - text {"type":"eof"}: generator 정상 종료 → done 전송 보장
+    - websocket.disconnect: break
+    """
+    while True:
+        try:
+            message = await ws.receive()
+        except WebSocketDisconnect:
+            break
+        if message["type"] == "websocket.disconnect":
+            break
+        chunk = message.get("bytes")
+        if chunk:
+            yield chunk
+            continue
+        text = message.get("text")
+        if text:
+            try:
+                if json.loads(text).get("type") == "eof":
+                    break
+            except (json.JSONDecodeError, AttributeError):
+                pass
 
 
 class _MockSTT:
@@ -57,7 +86,7 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
 
     async def tee():
         """PCM 청크를 STT 와 엔진 양쪽에 fan-out (Pattern B, adr-02)."""
-        async for chunk in from_websocket(ws):
+        async for chunk in _pcm_stream(ws):
             asyncio.create_task(stt.feed(chunk))
             yield chunk
 
