@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speaker Engine Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      background: #0d1117;
+      color: #c9d1d9;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ---- Layout: left(1) : right(3) ---- */
+    #app {
+      display: grid;
+      grid-template-columns: 1fr 3fr;
+      height: 100vh;
+      gap: 2px;
+      background: #21262d;
+      padding: 2px;
+    }
+
+    /* Left column: top(1) : bottom(1) */
+    #left-col {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 2px;
+    }
+
+    /* Right column: top(1) : mid(1) : bottom(1) */
+    #right-col {
+      display: grid;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 2px;
+    }
+
+    .panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #58a6ff;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+      border-bottom: 1px solid #21262d;
+      padding-bottom: 8px;
+    }
+
+    /* ---- 좌-상: 음성 업로드 ---- */
+    .file-label {
+      display: inline-block;
+      padding: 6px 14px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #c9d1d9;
+      transition: background 0.15s, border-color 0.15s;
+      align-self: flex-start;
+    }
+    .file-label:hover { background: #30363d; border-color: #58a6ff; }
+
+    #file-input { display: none; }
+
+    #filename {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 8px;
+      word-break: break-all;
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+    #filename.active { color: #58a6ff; }
+
+    #start-btn {
+      margin-top: auto;
+      padding: 8px 0;
+      background: #238636;
+      border: 1px solid #2ea043;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #start-btn:hover:not(:disabled) { background: #2ea043; }
+    #start-btn:disabled {
+      background: #21262d;
+      border-color: #30363d;
+      color: #8b949e;
+      cursor: not-allowed;
+    }
+
+    #status {
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 6px;
+      min-height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ---- 좌-하: 음성 재생 ---- */
+    #audio-player {
+      margin-top: auto;
+      width: 100%;
+    }
+
+    /* ---- Feed (우측 3 패널 공통) ---- */
+    .feed {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .feed::-webkit-scrollbar { width: 4px; }
+    .feed::-webkit-scrollbar-track { background: transparent; }
+    .feed::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+    /* 우-상 STT */
+    .stt-row {
+      font-size: 13px;
+      color: #c9d1d9;
+      line-height: 1.5;
+      padding: 3px 0;
+      border-bottom: 1px solid #21262d;
+    }
+
+    /* 우-중 매핑 */
+    .map-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 0;
+      border-bottom: 1px solid #21262d;
+    }
+
+    /* 우-하 최종 */
+    .final-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 3px 0;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .label-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #fff;
+      flex-shrink: 0;
+      font-family: 'SF Mono', Consolas, monospace;
+      white-space: nowrap;
+    }
+
+    .time-str {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 11px;
+      color: #8b949e;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .text-str {
+      font-size: 13px;
+      color: #c9d1d9;
+      word-break: break-word;
+    }
+
+    /* 우-하 done 요약 */
+    .done-section { margin-top: 8px; padding-top: 8px; }
+
+    .done-header {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #3fb950;
+      margin-bottom: 6px;
+    }
+
+    .done-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 12px;
+      color: #c9d1d9;
+      padding: 2px 0;
+    }
+
+    /* 에러 */
+    .error-toast {
+      font-size: 12px;
+      color: #f85149;
+      padding: 6px 10px;
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
+    /* ---- 좌-하: 웨이브폼 canvas + RMS (T-005b) ---- */
+    #waveform-canvas {
+      display: block;
+      width: 100%;
+      height: 70px;
+      background: #0d1117;
+      border-radius: 4px;
+      margin-top: 8px;
+      flex-shrink: 0;
+    }
+
+    #rms-value {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Left column -->
+    <div id="left-col">
+      <!-- 좌-상: 음성 업로드 -->
+      <div class="panel" id="upload-panel">
+        <div class="panel-title">음성 업로드</div>
+        <label class="file-label" for="file-input">파일 선택</label>
+        <input type="file" id="file-input" accept=".wav,.mp3,.m4a">
+        <div id="filename">선택된 파일 없음</div>
+        <button id="start-btn" disabled>전송 시작</button>
+        <div id="status"></div>
+      </div>
+      <!-- 좌-하: 음성 재생 -->
+      <div class="panel" id="playback-panel">
+        <div class="panel-title">음성 재생</div>
+        <audio id="audio-player" controls></audio>
+        <canvas id="waveform-canvas" height="70"></canvas>
+        <span id="rms-value">RMS 0.00</span>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div id="right-col">
+      <!-- 우-상: STT -->
+      <div class="panel" id="stt-panel">
+        <div class="panel-title">STT</div>
+        <div class="feed" id="stt-feed"></div>
+      </div>
+      <!-- 우-중: 매핑 결과 -->
+      <div class="panel" id="mapping-panel">
+        <div class="panel-title">매핑 결과</div>
+        <div class="feed" id="mapping-feed"></div>
+      </div>
+      <!-- 우-하: 최종 STT + 매핑 -->
+      <div class="panel" id="final-panel">
+        <div class="panel-title">최종 STT + 매핑</div>
+        <div class="feed" id="final-feed"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    /* ---- Speaker color palette (8색, planning-03 §5) ---- */
+    const PALETTE = [
+      '#1f6feb', '#e67e22', '#27ae60', '#9b59b6',
+      '#e74c3c', '#16a085', '#d35400', '#2c3e50',
+    ];
+    const _clrCache = Object.create(null);
+    function labelColor(label) {
+      if (_clrCache[label]) return _clrCache[label];
+      let h = 0;
+      for (let i = 0; i < label.length; i++) h = (Math.imul(31, h) + label.charCodeAt(i)) | 0;
+      const c = PALETTE[Math.abs(h) % PALETTE.length];
+      _clrCache[label] = c;
+      return c;
+    }
+
+    function fmtT(t) { return (+t).toFixed(1) + 's'; }
+
+    /* ---- DOM refs ---- */
+    const fileInput   = document.getElementById('file-input');
+    const filenameEl  = document.getElementById('filename');
+    const startBtn    = document.getElementById('start-btn');
+    const statusEl    = document.getElementById('status');
+    const audioPlayer = document.getElementById('audio-player');
+    const sttFeed     = document.getElementById('stt-feed');
+    const mapFeed     = document.getElementById('mapping-feed');
+    const finalFeed   = document.getElementById('final-feed');
+
+    /* ---- State ---- */
+    let _blobUrl = null;
+    let _ws = null;
+
+    /* ---- File selection ---- */
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      filenameEl.textContent = file.name;
+      filenameEl.classList.add('active');
+      if (_blobUrl) URL.revokeObjectURL(_blobUrl);
+      _blobUrl = URL.createObjectURL(file);
+      // 원본 파일 blob src — PCM 변환 이전 원본 재생용
+      audioPlayer.src = _blobUrl;
+      startBtn.disabled = false;
+      setStatus('');
+    });
+
+    /* ---- Start button ---- */
+    startBtn.addEventListener('click', () => {
+      const file = fileInput.files[0];
+      if (!file || _ws) return;
+      startBtn.disabled = true;
+      clearFeeds();
+      run(file).catch(err => {
+        appendError(finalFeed, '전송 오류: ' + err.message);
+        setStatus('오류');
+        startBtn.disabled = false;
+      });
+    });
+
+    /* ---- PCM16 변환 + WS 전송 (spec-07 §5) ---- */
+    async function run(file) {
+      // 1. File → ArrayBuffer
+      setStatus('디코딩 중...');
+      const arrayBuffer = await file.arrayBuffer();
+
+      // 2. Web Audio API 디코드
+      const audioCtx = new AudioContext();
+      let decoded;
+      try {
+        decoded = await audioCtx.decodeAudioData(arrayBuffer);
+      } finally {
+        audioCtx.close();
+      }
+
+      // 3. mono mixdown + 16kHz resample
+      setStatus('16kHz 리샘플링 중...');
+      const offlineCtx = new OfflineAudioContext(
+        1,
+        Math.ceil(decoded.duration * 16000),
+        16000
+      );
+      const src = offlineCtx.createBufferSource();
+      src.buffer = decoded;
+      src.connect(offlineCtx.destination);
+      src.start(0);
+      const resampled = await offlineCtx.startRendering();
+
+      // 4. Float32 → Int16
+      const f32 = resampled.getChannelData(0);
+      const i16 = new Int16Array(f32.length);
+      for (let i = 0; i < f32.length; i++) {
+        const s = Math.max(-1, Math.min(1, f32[i]));
+        i16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+
+      // 5. WS 연결
+      setStatus('연결 중...');
+      const visitId = typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : String(Date.now());
+      const ws = new WebSocket('ws://' + location.host + '/audio/' + visitId);
+      ws.binaryType = 'arraybuffer';
+      _ws = ws;
+
+      // onmessage를 open 이전에 등록 (race 방지)
+      ws.onmessage = handleMsg;
+      ws.onclose = () => {
+        _ws = null;
+        if (statusEl.textContent !== '완료' && statusEl.textContent !== '오류') {
+          setStatus('연결 종료');
+        }
+        startBtn.disabled = false;
+      };
+
+      await new Promise((resolve, reject) => {
+        ws.addEventListener('open', resolve, { once: true });
+        ws.addEventListener('error', () => reject(new Error('WebSocket 연결 실패')), { once: true });
+      });
+
+      // 6. 1초 청크 WS 전송
+      const CHUNK = 16000; // samples (1초)
+      setStatus('전송 중...');
+      for (let off = 0, n = 0; off < i16.length; off += CHUNK, n++) {
+        if (ws.readyState !== WebSocket.OPEN) break;
+        // slice: 새 버퍼 복사 (subarray는 전체 버퍼를 참조하므로 사용 X)
+        ws.send(i16.slice(off, off + CHUNK).buffer);
+        // 5청크(5초)마다 이벤트 루프에 양보 — UI 응답성 유지
+        if (n % 5 === 4) await new Promise(r => setTimeout(r, 0));
+      }
+
+      // 7. eof 시그널 (spec-07 §7)
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'eof' }));
+        setStatus('처리 대기 중...');
+      }
+    }
+
+    /* ---- WS 메시지 핸들러 ---- */
+    function handleMsg(event) {
+      let msg;
+      try { msg = JSON.parse(event.data); } catch {
+        console.warn('[demo-ui] JSON parse error:', event.data);
+        return;
+      }
+      switch (msg.type) {
+        case 'utterance': onUtterance(msg); break;
+        case 'relabel':   onRelabel(msg);   break;
+        case 'done':      onDone(msg);      break;
+        case 'error':
+          appendError(finalFeed, '서버 오류: ' + (msg.message || ''));
+          break;
+        default:
+          console.warn('[demo-ui] unknown message type:', msg.type);
+      }
+    }
+
+    function onUtterance(msg) {
+      const { utterance_id, label, t_start, t_end, text } = msg;
+      const color = labelColor(label);
+      const timeStr = fmtT(t_start) + '–' + fmtT(t_end);
+
+      // 우-상 STT: text 만, 빈 문자열 skip
+      if (text && text.trim()) {
+        const row = document.createElement('div');
+        row.className = 'stt-row';
+        row.textContent = text;
+        sttFeed.appendChild(row);
+        scrollBot(sttFeed);
+      }
+
+      // 우-중 매핑: [label] time
+      const mapRow = document.createElement('div');
+      mapRow.className = 'map-row';
+      mapRow.dataset.uid = utterance_id;
+      mapRow.appendChild(makeBadge(label, color));
+      const tSpan = document.createElement('span');
+      tSpan.className = 'time-str';
+      tSpan.textContent = timeStr;
+      mapRow.appendChild(tSpan);
+      mapFeed.appendChild(mapRow);
+      scrollBot(mapFeed);
+
+      // 우-하 최종: [label] time text
+      const finalRow = document.createElement('div');
+      finalRow.className = 'final-row';
+      finalRow.dataset.uid = utterance_id;
+      finalRow.appendChild(makeBadge(label, color));
+      const t2 = document.createElement('span');
+      t2.className = 'time-str';
+      t2.textContent = timeStr;
+      finalRow.appendChild(t2);
+      const txtSpan = document.createElement('span');
+      txtSpan.className = 'text-str';
+      txtSpan.textContent = text || '';
+      finalRow.appendChild(txtSpan);
+      finalFeed.appendChild(finalRow);
+      scrollBot(finalFeed);
+    }
+
+    function onRelabel(msg) {
+      const { new_label, affected_utterance_ids } = msg;
+      const color = labelColor(new_label);
+      // 우-상 STT는 라벨 없음 → 영향 X
+      for (const uid of affected_utterance_ids) {
+        updateBadge(mapFeed.querySelector('[data-uid="' + uid + '"]'), new_label, color);
+        updateBadge(finalFeed.querySelector('[data-uid="' + uid + '"]'), new_label, color);
+      }
+    }
+
+    function onDone(msg) {
+      const { candidates = [] } = msg;
+      setStatus('완료');
+
+      // 우-하에 [종료] + candidates 요약 추가
+      const section = document.createElement('div');
+      section.className = 'done-section';
+
+      const header = document.createElement('div');
+      header.className = 'done-header';
+      header.textContent = '[종료]';
+      section.appendChild(header);
+
+      // 와이어프레임: `auto_id  utterance_count발화  total_duration.1f s` 형식
+      for (const c of candidates) {
+        const row = document.createElement('div');
+        row.className = 'done-row';
+        row.appendChild(makeBadge(c.auto_id, labelColor(c.auto_id)));
+        const info = document.createElement('span');
+        info.textContent = c.utterance_count + '발화 ' + (+c.total_duration).toFixed(1) + 's';
+        row.appendChild(info);
+        section.appendChild(row);
+      }
+
+      finalFeed.appendChild(section);
+      scrollBot(finalFeed);
+
+      if (_ws) { _ws.close(); _ws = null; }
+    }
+
+    /* ---- Helpers ---- */
+    function makeBadge(label, color) {
+      const span = document.createElement('span');
+      span.className = 'label-badge';
+      span.style.background = color;
+      span.textContent = '[' + label + ']';
+      return span;
+    }
+
+    function updateBadge(rowEl, label, color) {
+      if (!rowEl) return;
+      const badge = rowEl.querySelector('.label-badge');
+      if (!badge) return;
+      badge.style.background = color;
+      badge.textContent = '[' + label + ']';
+    }
+
+    function clearFeeds() {
+      sttFeed.innerHTML = '';
+      mapFeed.innerHTML = '';
+      finalFeed.innerHTML = '';
+    }
+
+    function scrollBot(el) { el.scrollTop = el.scrollHeight; }
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+
+    function appendError(parent, msg) {
+      const el = document.createElement('div');
+      el.className = 'error-toast';
+      el.textContent = msg;
+      parent.appendChild(el);
+      scrollBot(parent);
+    }
+
+    /* ---- 웨이브폼 + RMS (T-005b) ---- */
+    let _analyserCtx = null;
+    let _analyser    = null;
+    let _analyserBuf = null;
+    let _rafId       = null;
+
+    const waveCanvas = document.getElementById('waveform-canvas');
+    const waveCtx2d  = waveCanvas.getContext('2d');
+    const rmsEl      = document.getElementById('rms-value');
+
+    function initAnalyser() {
+      if (_analyserCtx) return; // createMediaElementSource 는 <audio> 당 1회만 호출
+      _analyserCtx = new AudioContext();
+      // canvas 픽셀 버퍼를 실제 표시 너비에 맞춤
+      waveCanvas.width = waveCanvas.offsetWidth || waveCanvas.clientWidth || 300;
+      const source = _analyserCtx.createMediaElementSource(audioPlayer);
+      _analyser = _analyserCtx.createAnalyser();
+      _analyser.fftSize = 1024;
+      source.connect(_analyser);
+      _analyser.connect(_analyserCtx.destination); // 소리 출력 유지 필수
+      _analyserBuf = new Float32Array(_analyser.fftSize);
+    }
+
+    function drawWave() {
+      if (!_analyser) return;
+      if (audioPlayer.paused) { _rafId = null; return; } // 정지 시 마지막 프레임 유지, RAF 중단
+
+      _analyser.getFloatTimeDomainData(_analyserBuf);
+
+      const w = waveCanvas.width;
+      const h = waveCanvas.height;
+      waveCtx2d.clearRect(0, 0, w, h);
+      waveCtx2d.beginPath();
+      waveCtx2d.strokeStyle = '#58a6ff';
+      waveCtx2d.lineWidth = 1.5;
+      for (let i = 0; i < _analyserBuf.length; i++) {
+        const x = (i / _analyserBuf.length) * w;
+        const y = (1 - _analyserBuf[i]) * 0.5 * h;
+        i === 0 ? waveCtx2d.moveTo(x, y) : waveCtx2d.lineTo(x, y);
+      }
+      waveCtx2d.stroke();
+
+      let sq = 0;
+      for (let i = 0; i < _analyserBuf.length; i++) sq += _analyserBuf[i] * _analyserBuf[i];
+      rmsEl.textContent = 'RMS ' + Math.sqrt(sq / _analyserBuf.length).toFixed(2);
+
+      _rafId = requestAnimationFrame(drawWave);
+    }
+
+    audioPlayer.addEventListener('play', () => {
+      initAnalyser();
+      _analyserCtx.resume(); // user gesture 후 resume (autoplay 정책)
+      if (_rafId) cancelAnimationFrame(_rafId);
+      drawWave();
+    });
+  </script>
+</body>
+</html>

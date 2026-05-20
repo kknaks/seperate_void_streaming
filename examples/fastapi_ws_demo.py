@@ -22,6 +22,7 @@ from typing import AsyncIterator
 
 try:
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+    from fastapi.staticfiles import StaticFiles
 except ImportError as e:  # pragma: no cover
     raise ImportError(
         "fastapi 가 설치되지 않았습니다. 'pip install fastapi uvicorn' 을 실행하세요."
@@ -148,3 +149,7 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
             await ws.close()
         except Exception:
             pass
+
+
+# StaticFiles mount: /audio/{visit_id} WS 라우트 이후에 등록 (FastAPI 라우트 우선순위)
+app.mount("/", StaticFiles(directory="web", html=True), name="web")
