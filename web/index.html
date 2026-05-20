@@ -251,7 +251,7 @@
         <label class="file-label" for="file-input">파일 선택</label>
         <input type="file" id="file-input" accept=".wav,.mp3,.m4a">
         <div id="filename">선택된 파일 없음</div>
-        <button id="start-btn" disabled>전송 시작</button>
+        <button id="start-btn" disabled>재생 + 분석 시작</button>
         <div id="status"></div>
       </div>
       <!-- 좌-하: 음성 재생 -->
@@ -303,6 +303,30 @@
 
     function fmtT(t) { return (+t).toFixed(1) + 's'; }
 
+    /* ---- WAV encoder — §OQ-07-2 option A (OfflineAudioContext resample, 재생 전 1회) ---- */
+    function encodeWav(f32, sampleRate) {
+      const dataLen = f32.length * 2;
+      const buf = new ArrayBuffer(44 + dataLen);
+      const v = new DataView(buf);
+      const w = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+      w(0, 'RIFF'); v.setUint32(4, 36 + dataLen, true);
+      w(8, 'WAVE');
+      w(12, 'fmt ');  v.setUint32(16, 16, true);
+      v.setUint16(20, 1, true);              // PCM
+      v.setUint16(22, 1, true);              // mono
+      v.setUint32(24, sampleRate, true);
+      v.setUint32(28, sampleRate * 2, true); // byte rate
+      v.setUint16(32, 2, true);              // block align
+      v.setUint16(34, 16, true);             // bits per sample
+      w(36, 'data'); v.setUint32(40, dataLen, true);
+      const pcm = new Int16Array(buf, 44);
+      for (let i = 0; i < f32.length; i++) {
+        const s = f32[i] < -1 ? -1 : f32[i] > 1 ? 1 : f32[i];
+        pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+      return new Blob([buf], { type: 'audio/wav' });
+    }
+
     /* ---- DOM refs ---- */
     const fileInput   = document.getElementById('file-input');
     const filenameEl  = document.getElementById('filename');
@@ -314,83 +338,125 @@
     const finalFeed   = document.getElementById('final-feed');
 
     /* ---- State ---- */
-    let _blobUrl = null;
-    let _ws = null;
-    let _partialEl = null; // 우-상 STT partial buffer (단일 DOM 노드 재사용)
+    let _pcmBlobUrl  = null;    // 16kHz WAV blob URL (audio.src)
+    let _ws          = null;
+    let _partialEl   = null;    // 우-상 STT partial DOM node
+    let _audioReady  = false;   // true after resample completes
 
-    /* ---- File selection ---- */
-    fileInput.addEventListener('change', () => {
+    // Web Audio nodes — created once (createMediaElementSource: 1 call per element)
+    let _audioCtx    = null;
+    let _mediaSource = null;
+    let _worklet     = null;
+    let _analyser    = null;
+    let _analyserBuf = null;
+    let _rafId       = null;
+
+    /* ---- File selection: decode + resample 16kHz + WAV encode ---- */
+    fileInput.addEventListener('change', async () => {
       const file = fileInput.files[0];
       if (!file) return;
       filenameEl.textContent = file.name;
       filenameEl.classList.add('active');
-      if (_blobUrl) URL.revokeObjectURL(_blobUrl);
-      _blobUrl = URL.createObjectURL(file);
-      // 원본 파일 blob src — PCM 변환 이전 원본 재생용
-      audioPlayer.src = _blobUrl;
-      startBtn.disabled = false;
-      setStatus('');
+      startBtn.disabled = true;
+      _audioReady = false;
+      setStatus('디코딩 중...');
+
+      try {
+        const tmpCtx = new AudioContext();
+        let decoded;
+        try {
+          decoded = await tmpCtx.decodeAudioData(await file.arrayBuffer());
+        } finally {
+          tmpCtx.close();
+        }
+
+        // Mono mixdown + 16kHz resample (OfflineAudioContext — §OQ-07-2 option A)
+        setStatus('16kHz 리샘플링 중...');
+        const offCtx = new OfflineAudioContext(1, Math.ceil(decoded.duration * 16000), 16000);
+        const bufSrc = offCtx.createBufferSource();
+        bufSrc.buffer = decoded;
+        bufSrc.connect(offCtx.destination);
+        bufSrc.start(0);
+        const resampled = await offCtx.startRendering();
+
+        // Encode as 16kHz WAV → set audio.src
+        if (_pcmBlobUrl) URL.revokeObjectURL(_pcmBlobUrl);
+        _pcmBlobUrl = URL.createObjectURL(encodeWav(resampled.getChannelData(0), 16000));
+        audioPlayer.src = _pcmBlobUrl;
+        audioPlayer.currentTime = 0;
+
+        _audioReady = true;
+        startBtn.disabled = false;
+        setStatus('파일 준비 완료');
+      } catch (err) {
+        appendError(finalFeed, '디코딩 오류: ' + err.message);
+        setStatus('오류');
+      }
     });
 
-    /* ---- Start button ---- */
-    startBtn.addEventListener('click', () => {
-      const file = fileInput.files[0];
-      if (!file || _ws) return;
+    /* ---- [재생 + 분석 시작] button ---- */
+    startBtn.addEventListener('click', async () => {
+      if (!_audioReady || _ws) return;
       startBtn.disabled = true;
       clearFeeds();
-      run(file).catch(err => {
-        appendError(finalFeed, '전송 오류: ' + err.message);
+      try {
+        await initAudio();         // no-op if already initialized
+        audioPlayer.currentTime = 0;
+        openWs();
+        // WS open 대기 후 재생 — 첫 청크 유실 방지 (spec-07 §5)
+        await new Promise((resolve, reject) => {
+          _ws.addEventListener('open', resolve, { once: true });
+          _ws.addEventListener('error', () => reject(new Error('WebSocket 연결 실패')), { once: true });
+        });
+        await audioPlayer.play();
+      } catch (err) {
+        appendError(finalFeed, '시작 오류: ' + err.message);
         setStatus('오류');
         startBtn.disabled = false;
-      });
+        if (_ws) { _ws.close(); _ws = null; }
+      }
     });
 
-    /* ---- PCM16 변환 + WS 전송 (spec-07 §5) ---- */
-    async function run(file) {
-      // 1. File → ArrayBuffer
-      setStatus('디코딩 중...');
-      const arrayBuffer = await file.arrayBuffer();
-
-      // 2. Web Audio API 디코드
-      const audioCtx = new AudioContext();
-      let decoded;
-      try {
-        decoded = await audioCtx.decodeAudioData(arrayBuffer);
-      } finally {
-        audioCtx.close();
+    /* ---- Web Audio init (once per page) ---- */
+    async function initAudio() {
+      if (_audioCtx) return;
+      const ctx = new AudioContext({ sampleRate: 16000 });
+      // sampleRate 미지원 시 차단 — 잘못된 rate PCM 송신 방지
+      if (ctx.sampleRate !== 16000) {
+        ctx.close();
+        throw new Error('브라우저가 16kHz AudioContext 미지원 (sampleRate: ' + ctx.sampleRate + ')');
       }
+      _audioCtx = ctx;
+      waveCanvas.width = waveCanvas.offsetWidth || waveCanvas.clientWidth || 300;
 
-      // 3. mono mixdown + 16kHz resample
-      setStatus('16kHz 리샘플링 중...');
-      const offlineCtx = new OfflineAudioContext(
-        1,
-        Math.ceil(decoded.duration * 16000),
-        16000
-      );
-      const src = offlineCtx.createBufferSource();
-      src.buffer = decoded;
-      src.connect(offlineCtx.destination);
-      src.start(0);
-      const resampled = await offlineCtx.startRendering();
+      // worklet-processor.js: web/ → / 마운트이므로 절대경로
+      await _audioCtx.audioWorklet.addModule('/worklet-processor.js');
 
-      // 4. Float32 → Int16
-      const f32 = resampled.getChannelData(0);
-      const i16 = new Int16Array(f32.length);
-      for (let i = 0; i < f32.length; i++) {
-        const s = Math.max(-1, Math.min(1, f32[i]));
-        i16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-      }
+      // createMediaElementSource: audio element 당 1회만
+      _mediaSource = _audioCtx.createMediaElementSource(audioPlayer);
+      _worklet     = new AudioWorkletNode(_audioCtx, 'pcm-capture-processor');
+      _analyser    = _audioCtx.createAnalyser();
+      _analyser.fftSize = 1024;
+      _analyserBuf = new Float32Array(_analyser.fftSize);
 
-      // 5. WS 연결
-      setStatus('연결 중...');
+      // 4-way: source → worklet + analyser + destination (T-005b 보존)
+      _mediaSource.connect(_worklet);
+      _mediaSource.connect(_analyser);
+      _mediaSource.connect(_audioCtx.destination);
+
+      // AudioWorklet → WS 바이너리 송신
+      _worklet.port.onmessage = (ev) => {
+        if (_ws && _ws.readyState === WebSocket.OPEN) _ws.send(ev.data);
+      };
+    }
+
+    /* ---- WS open ---- */
+    function openWs() {
       const visitId = typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : String(Date.now());
+        ? crypto.randomUUID() : String(Date.now());
       const ws = new WebSocket('ws://' + location.host + '/audio/' + visitId);
       ws.binaryType = 'arraybuffer';
       _ws = ws;
-
-      // onmessage를 open 이전에 등록 (race 방지)
       ws.onmessage = handleMsg;
       ws.onclose = () => {
         _ws = null;
@@ -399,31 +465,30 @@
         }
         startBtn.disabled = false;
       };
-
-      await new Promise((resolve, reject) => {
-        ws.addEventListener('open', resolve, { once: true });
-        ws.addEventListener('error', () => reject(new Error('WebSocket 연결 실패')), { once: true });
-      });
-
-      // 6. 1초 청크 WS 전송
-      const CHUNK = 16000; // samples (1초)
-      setStatus('전송 중...');
-      for (let off = 0, n = 0; off < i16.length; off += CHUNK, n++) {
-        if (ws.readyState !== WebSocket.OPEN) break;
-        // slice: 새 버퍼 복사 (subarray는 전체 버퍼를 참조하므로 사용 X)
-        ws.send(i16.slice(off, off + CHUNK).buffer);
-        // 5청크(5초)마다 이벤트 루프에 양보 — UI 응답성 유지
-        if (n % 5 === 4) await new Promise(r => setTimeout(r, 0));
-      }
-
-      // 7. eof 시그널 (spec-07 §7)
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'eof' }));
-        setStatus('처리 대기 중...');
-      }
+      setStatus('연결 중...');
     }
 
-    /* ---- WS 메시지 핸들러 ---- */
+    /* ---- Audio element events (play/pause/ended — master clock) ---- */
+    audioPlayer.addEventListener('play', () => {
+      if (_audioCtx) _audioCtx.resume(); // user gesture 후 resume (autoplay 정책)
+      setStatus('전송 중...');
+      if (_rafId) cancelAnimationFrame(_rafId);
+      drawWave();
+    });
+
+    audioPlayer.addEventListener('pause', () => {
+      if (_audioCtx) _audioCtx.suspend(); // worklet 자동 정지 → WS 송신 중단
+    });
+
+    audioPlayer.addEventListener('ended', () => {
+      // spec-07 §2: audio.ended → eof 송신 → done 수신 대기 → WS close
+      if (_ws && _ws.readyState === WebSocket.OPEN) {
+        _ws.send(JSON.stringify({ type: 'eof' }));
+        setStatus('처리 대기 중...');
+      }
+    });
+
+    /* ---- WS 메시지 핸들러 (T-010 보존) ---- */
     function handleMsg(event) {
       let msg;
       try { msg = JSON.parse(event.data); } catch {
@@ -555,7 +620,6 @@
       header.textContent = '[종료]';
       section.appendChild(header);
 
-      // 와이어프레임: `auto_id  utterance_count발화  total_duration.1f s` 형식
       for (const c of candidates) {
         const row = document.createElement('div');
         row.className = 'done-row';
@@ -608,32 +672,14 @@
       scrollBot(parent);
     }
 
-    /* ---- 웨이브폼 + RMS (T-005b) ---- */
-    let _analyserCtx = null;
-    let _analyser    = null;
-    let _analyserBuf = null;
-    let _rafId       = null;
-
+    /* ---- 웨이브폼 + RMS (T-005b 보존) ---- */
     const waveCanvas = document.getElementById('waveform-canvas');
     const waveCtx2d  = waveCanvas.getContext('2d');
     const rmsEl      = document.getElementById('rms-value');
 
-    function initAnalyser() {
-      if (_analyserCtx) return; // createMediaElementSource 는 <audio> 당 1회만 호출
-      _analyserCtx = new AudioContext();
-      // canvas 픽셀 버퍼를 실제 표시 너비에 맞춤
-      waveCanvas.width = waveCanvas.offsetWidth || waveCanvas.clientWidth || 300;
-      const source = _analyserCtx.createMediaElementSource(audioPlayer);
-      _analyser = _analyserCtx.createAnalyser();
-      _analyser.fftSize = 1024;
-      source.connect(_analyser);
-      _analyser.connect(_analyserCtx.destination); // 소리 출력 유지 필수
-      _analyserBuf = new Float32Array(_analyser.fftSize);
-    }
-
     function drawWave() {
       if (!_analyser) return;
-      if (audioPlayer.paused) { _rafId = null; return; } // 정지 시 마지막 프레임 유지, RAF 중단
+      if (audioPlayer.paused) { _rafId = null; return; } // 정지 시 RAF 중단
 
       _analyser.getFloatTimeDomainData(_analyserBuf);
 
@@ -656,13 +702,6 @@
 
       _rafId = requestAnimationFrame(drawWave);
     }
-
-    audioPlayer.addEventListener('play', () => {
-      initAnalyser();
-      _analyserCtx.resume(); // user gesture 후 resume (autoplay 정책)
-      if (_rafId) cancelAnimationFrame(_rafId);
-      drawWave();
-    });
   </script>
 </body>
 </html>
