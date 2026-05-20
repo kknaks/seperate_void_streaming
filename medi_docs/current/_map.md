@@ -1,8 +1,8 @@
 # medi_docs/_map.md
 
-> 갱신 (PLAN-004-T-007 architect, 2026-05-20). STT streaming 재설계: spec-06 전면 재작성 (ElevenLabs, flush_window 폐기), spec-07 §3 utterance→segment+stt 분리, planning-03 STT 엔진 결정 갱신. lineage 1 edge 추가 (spec-07←spec-06).
+> 갱신 (PLAN-004-T-011 architect, 2026-05-20). Docker/compose SSOT 박제: spec-08 신규 (docker-compose 단일 서비스), planning-03 §2 Docker 행 추가 + §6 DoD 항목 추가. lineage 3 edge 추가 (spec-08←planning-03 / spec-08←spec-06 / spec-08←spec-07).
 
-_총 20 문서 (planning 3 / plan 1 / spec 7 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
+_총 21 문서 (planning 3 / plan 1 / spec 8 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
 
 ## 카테고리별
 
@@ -31,7 +31,7 @@ _총 20 문서 (planning 3 / plan 1 / spec 7 / policy 0 / adr 8 / runbook 1 / te
 - `adr-07-helper-scope.md`
 - `adr-08-final-recluster-strategy.md`
 
-### spec — 7
+### spec — 8
 
 - `spec-01-speaker-engine-api.md` _(status: ready, §OQ 2건 박제)_
 - `spec-02-speaker-store-schema.md` _(status: ready, §OQ 2건 박제)_
@@ -40,6 +40,7 @@ _총 20 문서 (planning 3 / plan 1 / spec 7 / policy 0 / adr 8 / runbook 1 / te
 - `spec-05-test-strategy.md` _(status: ready)_
 - `spec-06-stt-adapter.md` _(ElevenLabs streaming STT 재설계, flush_window 폐기, §OQ-06-1 무효/§OQ-06-2 신설, 2026-05-20)_
 - `spec-07-demo-ui-protocol.md` _(utterance→segment+stt 분리, §OQ-07-1 신설, 2026-05-20)_
+- `spec-08-docker-compose.md` _(데모 서버 Docker 패키징 + compose 단일 서비스, §OQ-08-1 포트 선택, 2026-05-20)_
 
 ## lineage 요약
 
@@ -159,4 +160,9 @@ spec-07-demo-ui-protocol (segment+stt 분리 이벤트, §OQ-07-1 박제, 2026-0
   ← planning-02-speaker-engine (§3 이벤트 2종 정의, §150 FastAPI WS demo)
   ← planning-03-demo-v04 (§3 시나리오, §4 UI 요구사항)
   ← spec-06-stt-adapter (§3 stt 이벤트 구조, §2 시간 정렬 정책)
+
+spec-08-docker-compose (데모 서버 Docker 패키징 + compose 단일 서비스, 2026-05-20)
+  ← planning-03-demo-v04 (§2 Docker 범위 결정, §6 DoD — compose e2e)
+  ← spec-06-stt-adapter (ElevenLabs 외부 API — 컨테이너 내 STT 모델 없음, env ELEVENLABS_API_KEY)
+  ← spec-07-demo-ui-protocol (WS 엔드포인트 — port 8000, healthcheck 대상)
 ```
