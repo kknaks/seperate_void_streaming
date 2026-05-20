@@ -29,7 +29,7 @@
     /* Left column: top(1) : bottom(1) */
     #left-col {
       display: grid;
-      grid-template-rows: 1fr 1fr;
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
       gap: 2px;
       min-height: 0;
       min-width: 0;
@@ -39,7 +39,7 @@
     /* Right column: top(1) : mid(1) : bottom(1) */
     #right-col {
       display: grid;
-      grid-template-rows: 1fr 1fr 1fr;
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
       gap: 2px;
       min-height: 0;
       min-width: 0;
