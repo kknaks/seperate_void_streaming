@@ -96,7 +96,11 @@ async def test_parse_partial_transcript():
 
 
 async def test_parse_committed_transcript_with_timestamps():
-    """committed_transcript_with_timestamps → Transcript(is_final=True, t_start/t_end 설정)."""
+    """committed_transcript_with_timestamps → words 배열을 단어별 Transcript 로 분해 emit.
+
+    word-level timestamps 가 클라 UI 의 segment 매핑에 사용되므로 통째가 아닌
+    단어 단위로 yield 해야 SpeakerSegment 와 시간 좌표로 정확히 매칭됨.
+    """
     words = [
         {"text": "안녕", "start": 0.1, "end": 0.4, "type": "word"},
         {"text": " ", "start": 0.4, "end": 0.5, "type": "spacing"},
@@ -113,10 +117,16 @@ async def test_parse_committed_transcript_with_timestamps():
         async for t in stt.stream():
             results.append(t)
 
-    assert len(results) == 1
+    # spacing 은 제외, word 만 — 2건
+    assert len(results) == 2
+    assert results[0].text == "안녕"
     assert results[0].t_start == pytest.approx(0.1)
-    assert results[0].t_end == pytest.approx(1.1)
+    assert results[0].t_end == pytest.approx(0.4)
     assert results[0].is_final is True
+    assert results[1].text == "하세요"
+    assert results[1].t_start == pytest.approx(0.5)
+    assert results[1].t_end == pytest.approx(1.1)
+    assert results[1].is_final is True
 
 
 async def test_parse_committed_transcript_no_timestamps():

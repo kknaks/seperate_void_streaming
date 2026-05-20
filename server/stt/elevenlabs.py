@@ -89,8 +89,7 @@ class ElevenLabsSTT:
             try:
                 async for raw_msg in ws:
                     msg = json.loads(raw_msg)
-                    transcript = self._parse_message(msg)
-                    if transcript is not None:
+                    for transcript in self._parse_messages(msg):
                         yield transcript
             except Exception:
                 raise
@@ -132,31 +131,43 @@ class ElevenLabsSTT:
             )
             await ws.send(payload)  # type: ignore[attr-defined]
 
-    def _parse_message(self, msg: dict) -> Transcript | None:
-        """ElevenLabs WS 응답 메시지를 Transcript 로 변환. 무관 메시지는 None 반환."""
+    def _parse_messages(self, msg: dict) -> list[Transcript]:
+        """ElevenLabs WS 응답 메시지를 Transcript list 로 변환.
+
+        final (`committed_transcript_with_timestamps`) 은 `words` 배열을 단어별로
+        분해 — 각 단어가 자기 t_start/t_end 를 가져 UI 측에서 SpeakerSegment
+        와 시간 매핑 가능. 통째 transcript 하나만 emit 하면 긴 transcript 가
+        여러 segment 를 cover 해도 한 segment 에만 매핑됨.
+        """
         msg_type = msg.get("message_type")
 
         if msg_type == "partial_transcript":
             text = msg.get("text", "")
             if not text:
-                return None
-            return Transcript(t_start=0.0, t_end=0.0, text=text, is_final=False)
+                return []
+            # partial 은 timestamps 없음 → 0.0 (UI 가 우-상 자막에 사용)
+            return [Transcript(t_start=0.0, t_end=0.0, text=text, is_final=False)]
 
         if msg_type == "committed_transcript_with_timestamps":
             words = msg.get("words") or []
-            word_tokens = [w for w in words if w.get("type") == "word"]
-            if word_tokens:
-                t_start = float(word_tokens[0].get("start", 0.0))
-                t_end = float(word_tokens[-1].get("end", 0.0))
-            else:
-                t_start = t_end = 0.0
-            text = msg.get("text", "")
-            return Transcript(t_start=t_start, t_end=t_end, text=text, is_final=True)
+            results: list[Transcript] = []
+            for w in words:
+                if w.get("type") != "word":
+                    continue
+                wtext = w.get("text", "")
+                if not wtext.strip():
+                    continue
+                t_s = float(w.get("start", 0.0))
+                t_e = float(w.get("end", t_s))
+                results.append(Transcript(t_start=t_s, t_end=t_e, text=wtext, is_final=True))
+            return results
 
         if msg_type == "committed_transcript":
             text = msg.get("text", "")
-            return Transcript(t_start=0.0, t_end=0.0, text=text, is_final=True)
+            if not text:
+                return []
+            return [Transcript(t_start=0.0, t_end=0.0, text=text, is_final=True)]
 
         if msg_type not in ("session_started", "session_ended"):
             logger.debug("ElevenLabsSTT: 무시된 메시지 type=%s", msg_type)
-        return None
+        return []
