@@ -316,6 +316,7 @@
     /* ---- State ---- */
     let _blobUrl = null;
     let _ws = null;
+    let _partialEl = null; // 우-상 STT partial buffer (단일 DOM 노드 재사용)
 
     /* ---- File selection ---- */
     fileInput.addEventListener('change', () => {
@@ -430,9 +431,10 @@
         return;
       }
       switch (msg.type) {
-        case 'utterance': onUtterance(msg); break;
-        case 'relabel':   onRelabel(msg);   break;
-        case 'done':      onDone(msg);      break;
+        case 'segment': onSegment(msg); break;
+        case 'stt':     onStt(msg);     break;
+        case 'relabel': onRelabel(msg); break;
+        case 'done':    onDone(msg);    break;
         case 'error':
           appendError(finalFeed, '서버 오류: ' + (msg.message || ''));
           break;
@@ -441,21 +443,12 @@
       }
     }
 
-    function onUtterance(msg) {
-      const { utterance_id, label, t_start, t_end, text } = msg;
+    function onSegment(msg) {
+      const { utterance_id, label, t_start, t_end } = msg;
       const color = labelColor(label);
       const timeStr = fmtT(t_start) + '–' + fmtT(t_end);
 
-      // 우-상 STT: text 만, 빈 문자열 skip
-      if (text && text.trim()) {
-        const row = document.createElement('div');
-        row.className = 'stt-row';
-        row.textContent = text;
-        sttFeed.appendChild(row);
-        scrollBot(sttFeed);
-      }
-
-      // 우-중 매핑: [label] time
+      // 우-중 발화 로그: [label] t_start–t_end
       const mapRow = document.createElement('div');
       mapRow.className = 'map-row';
       mapRow.dataset.uid = utterance_id;
@@ -467,10 +460,12 @@
       mapFeed.appendChild(mapRow);
       scrollBot(mapFeed);
 
-      // 우-하 최종: [label] time text
+      // 우-하 최종: [label] time + text placeholder (stt 이벤트 도착 시 채워짐)
       const finalRow = document.createElement('div');
       finalRow.className = 'final-row';
       finalRow.dataset.uid = utterance_id;
+      finalRow.dataset.tStart = t_start;
+      finalRow.dataset.tEnd = t_end;
       finalRow.appendChild(makeBadge(label, color));
       const t2 = document.createElement('span');
       t2.className = 'time-str';
@@ -478,10 +473,63 @@
       finalRow.appendChild(t2);
       const txtSpan = document.createElement('span');
       txtSpan.className = 'text-str';
-      txtSpan.textContent = text || '';
       finalRow.appendChild(txtSpan);
       finalFeed.appendChild(finalRow);
       scrollBot(finalFeed);
+    }
+
+    function onStt(msg) {
+      const { t_start, text, is_final } = msg;
+
+      // 우-상 STT 자막: partial 단일 버퍼 재사용, final 확정
+      if (is_final) {
+        if (_partialEl) {
+          _partialEl.textContent = text;
+          _partialEl.style.color = '';
+          _partialEl = null;
+        } else if (text && text.trim()) {
+          const row = document.createElement('div');
+          row.className = 'stt-row';
+          row.textContent = text;
+          sttFeed.appendChild(row);
+        }
+        scrollBot(sttFeed);
+      } else {
+        if (!_partialEl) {
+          _partialEl = document.createElement('div');
+          _partialEl.className = 'stt-row';
+          _partialEl.style.color = '#8b949e';
+          sttFeed.appendChild(_partialEl);
+        }
+        _partialEl.textContent = text;
+        scrollBot(sttFeed);
+      }
+
+      // 우-하 최종 매핑: stt.t_start ∈ segment [t_start, t_end] 선형 검색
+      const finalRows = finalFeed.querySelectorAll('.final-row[data-t-start]');
+      let matched = false;
+      for (const row of finalRows) {
+        const tS = parseFloat(row.dataset.tStart);
+        const tE = parseFloat(row.dataset.tEnd);
+        if (tS <= t_start && t_start <= tE) {
+          const txtSpan = row.querySelector('.text-str');
+          if (txtSpan) txtSpan.textContent = text;
+          matched = true;
+          break;
+        }
+      }
+      // 매칭 없는 final text → orphan 행 (partial은 무시)
+      if (!matched && is_final && text && text.trim()) {
+        const orphan = document.createElement('div');
+        orphan.className = 'final-row orphan';
+        const txtSpan = document.createElement('span');
+        txtSpan.className = 'text-str';
+        txtSpan.style.color = '#8b949e';
+        txtSpan.textContent = '(미매핑) ' + text;
+        orphan.appendChild(txtSpan);
+        finalFeed.appendChild(orphan);
+        scrollBot(finalFeed);
+      }
     }
 
     function onRelabel(msg) {
@@ -545,6 +593,7 @@
       sttFeed.innerHTML = '';
       mapFeed.innerHTML = '';
       finalFeed.innerHTML = '';
+      _partialEl = null;
     }
 
     function scrollBot(el) { el.scrollTop = el.scrollHeight; }
