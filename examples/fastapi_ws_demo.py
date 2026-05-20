@@ -1,10 +1,11 @@
-"""fastapi_ws_demo.py — FastAPI WebSocket + Pattern B fanout + STT mock (planning-02 §150).
+"""fastapi_ws_demo.py — FastAPI WebSocket + Pattern B fanout + ElevenLabsSTT (spec-07 §3).
 
 설치 (examples 전용 — 코어 의존성 아님):
     pip install fastapi uvicorn websockets
 
 실행:
     export HF_TOKEN=hf_xxxxx
+    export ELEVENLABS_API_KEY=sk_xxxxx
     export SPEAKER_ENGINE_STORAGE_URL=memory://
     uvicorn examples.fastapi_ws_demo:app --reload
 
@@ -28,6 +29,7 @@ except ImportError as e:  # pragma: no cover
         "fastapi 가 설치되지 않았습니다. 'pip install fastapi uvicorn' 을 실행하세요."
     ) from e
 
+from server.stt import ElevenLabsSTT, Transcript
 from speaker_engine import (
     LabelChange,
     SpeakerEngine,
@@ -67,59 +69,69 @@ async def _pcm_stream(ws: WebSocket) -> AsyncIterator[bytes]:
                 pass
 
 
-class _MockSTT:
-    """STT 구현체는 사용처 책임 (Pattern B fanout, adr-02). 여기선 stub."""
-
-    async def feed(self, chunk: bytes) -> None:
-        await asyncio.sleep(0)  # 실제 구현에서는 STT 백엔드로 전송
-
-    async def flush_window(self, t_start: float, t_end: float) -> str:
-        return f"[STT stub] {t_start:.2f}-{t_end:.2f}s"
-
-
 @app.websocket("/audio/{visit_id}")
 async def audio_ws(ws: WebSocket, visit_id: str) -> None:
     await ws.accept()
     logger.info("WS connected: visit_id=%s", visit_id)
 
     engine = SpeakerEngine()
-    stt = _MockSTT()
+    stt = ElevenLabsSTT(language="ko")
 
-    async def tee():
+    async def tee() -> AsyncIterator[bytes]:
         """PCM 청크를 STT 와 엔진 양쪽에 fan-out (Pattern B, adr-02)."""
         async for chunk in _pcm_stream(ws):
             asyncio.create_task(stt.feed(chunk))
             yield chunk
 
+    async def forward_stt_stream() -> None:
+        """STT 채널 — Transcript 이벤트를 stt 타입 JSON 으로 push (spec-07 §3)."""
+        async for t in stt.stream():
+            await ws.send_json(
+                {
+                    "type": "stt",
+                    "t_start": t.t_start,
+                    "t_end": t.t_end,
+                    "text": t.text,
+                    "is_final": t.is_final,
+                }
+            )
+
+    async def engine_channel() -> list:
+        """Engine 채널 — SpeakerSegment/LabelChange 처리 후 stt.close() + finalize."""
+        async for event in engine.stream(tee()):
+            if isinstance(event, SpeakerSegment):
+                await ws.send_json(
+                    {
+                        "type": "segment",
+                        "utterance_id": event.utterance_id,
+                        "label": event.label,
+                        "t_start": event.t_start,
+                        "t_end": event.t_end,
+                        "confidence": event.confidence,
+                    }
+                )
+            elif isinstance(event, LabelChange):
+                await ws.send_json(
+                    {
+                        "type": "relabel",
+                        "old_label": event.old_label,
+                        "new_label": event.new_label,
+                        "reason": event.reason,
+                        "affected_count": len(event.affected_utterance_ids),
+                        "affected_utterance_ids": event.affected_utterance_ids,
+                    }
+                )
+        # PCM 소진 → STT commit 시그널 → forward_stt_stream 이 drain 후 종료
+        await stt.close()
+        return await engine.finalize()
+
     try:
         async with engine:
-            async for event in engine.stream(tee()):
-                if isinstance(event, SpeakerSegment):
-                    text = await stt.flush_window(event.t_start, event.t_end)
-                    await ws.send_json(
-                        {
-                            "type": "utterance",
-                            "utterance_id": event.utterance_id,
-                            "label": event.label,
-                            "t_start": event.t_start,
-                            "t_end": event.t_end,
-                            "confidence": event.confidence,
-                            "text": text,
-                        }
-                    )
-                elif isinstance(event, LabelChange):
-                    await ws.send_json(
-                        {
-                            "type": "relabel",
-                            "old_label": event.old_label,
-                            "new_label": event.new_label,
-                            "reason": event.reason,
-                            "affected_count": len(event.affected_utterance_ids),
-                            "affected_utterance_ids": event.affected_utterance_ids,
-                        }
-                    )
+            candidates, _ = await asyncio.gather(
+                engine_channel(),
+                forward_stt_stream(),
+            )
 
-            candidates = await engine.finalize()
             await ws.send_json(
                 {
                     "type": "done",
@@ -145,6 +157,10 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
         except Exception:
             pass
     finally:
+        try:
+            await stt.close()
+        except Exception:
+            pass
         try:
             await ws.close()
         except Exception:
