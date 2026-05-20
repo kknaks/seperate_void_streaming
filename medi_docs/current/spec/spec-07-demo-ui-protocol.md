@@ -52,6 +52,7 @@ ws://host/audio/{visit_id}
 ### 종료 시그널
 
 - **권장**: 텍스트 프레임으로 `{"type":"eof"}` 송신 후 WS close
+  - 재생 master clock 패턴 (§5): `audio.ended` 이벤트가 `eof` 송신 트리거 — 재생 완료 시 자동 종료
 - **허용**: WS graceful close 만 (현재 데모 동작 방식) — §7 의 race 조건 주의
 
 ---
@@ -188,7 +189,7 @@ anchor: `fastapi_ws_demo.py:114`
 | 기능 | 상세 |
 |---|---|
 | 파일 업로드 인풋 | `<input type="file" accept=".wav,.mp3,.m4a">` |
-| 재생 컨트롤 | 원본 오디오 재생 (업로드된 파일 기준) — 선택사항 |
+| 재생 컨트롤 | `<audio>` 재생 **master clock — 필수**. `play` → WS 송신 시작 / `pause` → WS 송신 일시정지 / `ended` → `eof` 송신 + done 수신 대기 → WS close (§5 참조) |
 | 우-상 STT 자막 | `stt` 이벤트 실시간 표시 — `is_final=false` 이면 partial 갱신, `true` 이면 확정 |
 | 우-중 발화 로그 | `segment` 이벤트 기반 — 화자별 색상 구분 + 시간(t_start-t_end) |
 | 우-하 최종 매핑 결과 | 클라이언트가 `stt.t_start` 가 `segment` 구간 `[t_start, t_end]` 에 포함되면 같은 행에 결합 |
@@ -198,49 +199,45 @@ anchor: `fastapi_ws_demo.py:114`
 
 ---
 
-## §5 브라우저 측 PCM16 변환 가이드
+## §5 재생 master clock + AudioWorklet capture (v0.1 신규)
 
-파일 업로드 → PCM16 16kHz mono 변환 → 1초 청크 WS 전송 흐름. 구현은 `demo-ui` 워커 책임.
+> **즉시 송신 패턴 _(deprecated 2026-05-20)_**: 파일 업로드 → `decodeAudioData` → 1초 청크 즉시 WS 전송 패턴 폐기. 재생 master clock 패턴으로 대체. 구현은 T-014 (demo-ui).
 
-```javascript
-// 1. 파일 → ArrayBuffer
-const arrayBuffer = await file.arrayBuffer();
+### 아키텍처 구조
 
-// 2. Web Audio API 로 디코드
-const audioCtx = new AudioContext();
-const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-
-// 3. mono mixdown + 16kHz resample (OfflineAudioContext)
-const offlineCtx = new OfflineAudioContext(
-  1,                           // channels: mono
-  Math.ceil(decoded.duration * 16000),
-  16000                        // sampleRate: 16kHz
-);
-const src = offlineCtx.createBufferSource();
-src.buffer = decoded;
-src.connect(offlineCtx.destination);
-src.start(0);
-const resampled = await offlineCtx.startRendering();
-
-// 4. Float32 → Int16 변환
-const float32 = resampled.getChannelData(0);
-const int16 = new Int16Array(float32.length);
-for (let i = 0; i < float32.length; i++) {
-  const s = Math.max(-1, Math.min(1, float32[i]));
-  int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-}
-
-// 5. 1초 청크 분할 + WS 전송
-const CHUNK_SAMPLES = 16000;  // 1초
-const ws = new WebSocket(`ws://host/audio/${visitId}`);
-for (let offset = 0; offset < int16.length; offset += CHUNK_SAMPLES) {
-  const chunk = int16.slice(offset, offset + CHUNK_SAMPLES);
-  ws.send(chunk.buffer);
-}
-// 6. 종료 시그널
-ws.send(JSON.stringify({ type: "eof" }));
-ws.close();
+```mermaid
+flowchart TD
+    A["파일 선택 → &lt;audio&gt; src 설정"] --> B["[재생 + 분석 시작] 클릭"]
+    B --> C["audio.play() + WS open (visit_id=uuid)"]
+    C --> D["MediaElementAudioSourceNode"]
+    D --> E["AudioWorklet processor\nFloat32 → Int16 → ~64ms 버퍼 → WS 바이너리 송신"]
+    D --> F["AnalyserNode\n음파/RMS canvas — T-005b 보존"]
+    D --> G["destination (소리 출력)"]
+    P["audio.pause"] --> Q["AudioContext.suspend() — 송신 일시정지"]
+    R["audio.ended"] --> S["ws.send({type:'eof'})"]
+    S --> T["done 수신 대기 → WS close"]
 ```
+
+### 노드 연결 원칙
+
+| 노드 | 역할 |
+|---|---|
+| `MediaElementAudioSourceNode` | `<audio>` 재생 오디오를 Web Audio 그래프 진입점으로 연결 |
+| `AudioWorklet processor` | Float32 frame 수신 → Int16 변환 → ~64ms 버퍼 누적 → WS 바이너리 송신 |
+| `AnalyserNode` | 음파/RMS 시각화 (T-005b — 변경 없음) |
+| `destination` | 스피커 출력 (사용자가 오디오를 들을 수 있음) |
+
+> `AudioContext.sampleRate` ≠ 16000 처리 + 청크 단위 → §OQ-07-2 워커 결정 대상.
+
+### play / pause / ended 동기화
+
+| 오디오 이벤트 | WS 동작 |
+|---|---|
+| `audio.play` | `AudioContext.resume()` + WS open (visit_id = uuid) |
+| `audio.pause` | `AudioContext.suspend()` — AudioWorklet 송신 일시정지 |
+| `audio.ended` | `ws.send({"type":"eof"})` → `done` 수신 대기 → WS close |
+
+> **구현은 `demo-ui` 워커 책임** (T-014). 서버 (`fastapi_ws_demo.py`) 는 PCM 바이너리 수신 계약 불변 — §1 계약 변경 없음.
 
 ---
 
@@ -251,6 +248,8 @@ ws.close();
 - `AudioWorklet` + `SharedArrayBuffer` 로 실시간 PCM16 추출
 - `MediaRecorder` API 는 WebM/Ogg 로 인코딩되어 PCM 직접 추출 불가 — AudioWorklet 필요
 - 16kHz resample 은 `AudioContext.sampleRate` 와 다를 수 있으므로 `OfflineAudioContext` resample 유지
+
+> **v0.2 전환 비용 낮음**: v0.1 재생 capture 패턴 (`MediaElementAudioSourceNode` + AudioWorklet) 이 마이크 입력과 동일 구조. capture source 를 `MediaStreamAudioSourceNode` 로 교체하는 것이 전부 — AudioWorklet processor 재사용 가능.
 
 ---
 
@@ -294,3 +293,35 @@ await ws.send_json({type:"done"})      ← WebSocketDisconnect 또는 무시
 > **v0.2 서버 매핑 layer 검토 안**: 서버가 `segment` emit 시점에 현재까지 수신한 `stt` 결과를 매핑하여 단일 이벤트로 결합. 지연 vs 클라이언트 단순화 trade-off.
 >
 > **재검토 트리거**: 클라이언트 매핑 구현 복잡도가 허용 한계 초과 시, 또는 v0.2 기능 기획 시.
+
+---
+
+## §OQ-07-2 — 재생 capture 미결 사항 (신규, 2026-05-20)
+
+### A. AudioContext sampleRate ≠ 16000 처리 방식
+
+> **Status**: 미결 — **워커(T-014) 결정** 대상.
+>
+> **재검토 트리거**: T-014 구현 착수 시 워커가 실기기 sampleRate 확인 후 결정.
+
+| 옵션 | 설명 | trade-off |
+|---|---|---|
+| A) AudioBuffer 미리 resample | 재생 전 `OfflineAudioContext`(16kHz)로 resample → 새 `<audio>` src 교체 | 정확, 재생 전 변환 시간 발생 |
+| B) AudioWorklet 내 software resample | processor 안에서 실시간 resample | 구현 복잡도 높음 |
+| C) 16kHz wav 업로드 강제 | 사용자에게 변환 책임 | UX 나쁨 — 권장 X |
+
+> **architect 제안**: A — `OfflineAudioContext` 패턴이 §5 이전 구현에 이미 존재, 재사용 비용 낮음.
+
+### B. AudioWorklet 청크 송신 단위
+
+> **Status**: 미결 — **워커(T-014) 결정** 대상.
+>
+> **재검토 트리거**: T-014 구현 시 실측 latency 확인 후 결정.
+
+| 옵션 | samples | 약 ms | 비고 |
+|---|---|---|---|
+| ~64ms | 1,024 | 64 | 표준 Web Audio 블록(128 samples)의 8배, latency 우선 |
+| ~100ms | 1,600 | 100 | 라운드 넘버 |
+| 동적 | — | — | 누적 버퍼 크기 기준 flush — 복잡도 높음 |
+
+> **architect 제안**: ~64ms (1,024 samples) — 지연 최소화, 표준 블록 배수.

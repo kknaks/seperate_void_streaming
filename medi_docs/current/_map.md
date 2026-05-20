@@ -1,6 +1,6 @@
 # medi_docs/_map.md
 
-> 갱신 (PLAN-004-T-011 architect, 2026-05-20). Docker/compose SSOT 박제: spec-08 신규 (docker-compose 단일 서비스), planning-03 §2 Docker 행 추가 + §6 DoD 항목 추가. lineage 3 edge 추가 (spec-08←planning-03 / spec-08←spec-06 / spec-08←spec-07).
+> 갱신 (PLAN-004-T-013 architect, 2026-05-20). 재생 master clock 재설계: spec-07 §2 종료 시그널 + §4 재생 컨트롤 필수 승격 + §5 즉시 송신 폐기(deprecated) → AudioWorklet capture 구조 + §6 v0.2 전환 비용 메모 + §OQ-07-2 신설 (워커 결정 사항 2건). planning-03 §3 mermaid (AudioWorklet 시퀀스) + §5 demo-ui 경계 갱신. lineage 변경 없음.
 
 _총 21 문서 (planning 3 / plan 1 / spec 8 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
 
@@ -39,7 +39,7 @@ _총 21 문서 (planning 3 / plan 1 / spec 8 / policy 0 / adr 8 / runbook 1 / te
 - `spec-04-clustering-algorithms.md` _(status: ready)_
 - `spec-05-test-strategy.md` _(status: ready)_
 - `spec-06-stt-adapter.md` _(ElevenLabs streaming STT 재설계, flush_window 폐기, §OQ-06-1 무효/§OQ-06-2 신설, 2026-05-20)_
-- `spec-07-demo-ui-protocol.md` _(utterance→segment+stt 분리, §OQ-07-1 신설, 2026-05-20)_
+- `spec-07-demo-ui-protocol.md` _(재생 master clock + AudioWorklet capture 재설계 — §5 즉시 송신 폐기, §OQ-07-1/07-2 박제, 2026-05-20)_
 - `spec-08-docker-compose.md` _(데모 서버 Docker 패키징 + compose 단일 서비스, §OQ-08-1 포트 선택, 2026-05-20)_
 
 ## lineage 요약
