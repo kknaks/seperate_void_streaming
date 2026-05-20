@@ -23,6 +23,7 @@ sqlite = ["sqlite-vec"]
 pgvector = ["pgvector", "asyncpg"]
 beamforming = ["pyroomacoustics"]
 microphone = ["sounddevice"]
+stt = ["faster-whisper>=1.0,<2"]
 dev = [
     "pytest",
     "pytest-asyncio",
@@ -31,12 +32,13 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["speaker_engine*"]
+include = ["speaker_engine*", "server*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = [
     "integration: 실 diart 모델 / HF_TOKEN 필요 (spec-05 §2 integration 카테고리)",
     "live: 실 인프라 (pgvector DB / HF Hub) 필요 (spec-05 §2 live 카테고리)",
