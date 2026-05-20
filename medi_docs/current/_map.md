@@ -1,8 +1,8 @@
 # medi_docs/_map.md
 
-> 갱신 (spec 정합 라운드 PLAN-003, 2026-05-18). E-01~E-06 + H-01~H-05 구현 발견 사항 spec-01/02/03 §OQ 박제. 누적 발견 4건 (DiartAdapter DI / WaveformBuffer.drain_queue / sqlite-vec PARTITION KEY / MultiDeviceMerge source 주입). 코드 변경 X — 명세 동기화만.
+> 갱신 (PLAN-004-T-002 architect, 2026-05-20). V-04 데모 SSOT 3문서 신규: planning-03, spec-06, spec-07. lineage 3 노드 + 4 edges 추가.
 
-_총 17 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
+_총 20 문서 (planning 3 / plan 1 / spec 7 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
 
 ## 카테고리별
 
@@ -10,10 +10,11 @@ _총 17 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 1 / te
 
 - `runbook-01-engine-tuning.md` _(V-01 DER baseline + grid sweep + 한계 박제, 2026-05-19)_
 
-### planning — 2
+### planning — 3
 
 - `planning-01-consultation-system.md`
 - `planning-02-speaker-engine.md`
+- `planning-03-demo-v04.md` _(V-04 데모 시나리오, git tag v0.1.0, 2026-05-20)_
 
 ### plan — 1
 
@@ -30,13 +31,15 @@ _총 17 문서 (planning 2 / plan 1 / spec 5 / policy 0 / adr 8 / runbook 1 / te
 - `adr-07-helper-scope.md`
 - `adr-08-final-recluster-strategy.md`
 
-### spec — 5
+### spec — 7
 
 - `spec-01-speaker-engine-api.md` _(status: ready, §OQ 2건 박제)_
 - `spec-02-speaker-store-schema.md` _(status: ready, §OQ 2건 박제)_
 - `spec-03-diart-adapter.md` _(status: ready, §2-1/§2-2 갱신 + §OQ 3건 박제)_
 - `spec-04-clustering-algorithms.md` _(status: ready)_
 - `spec-05-test-strategy.md` _(status: ready)_
+- `spec-06-stt-adapter.md` _(V-04 데모 STT 어댑터 계약, §OQ-06-1 박제, 2026-05-20)_
+- `spec-07-demo-ui-protocol.md` _(V-04 데모 WS json schema 정식화, 2026-05-20)_
 
 ## lineage 요약
 
@@ -140,4 +143,19 @@ runbook-01-engine-tuning (V-01 closure, 2026-05-19)
   → spec-04-clustering-algorithms §OQ-04-2 (closed)
   → spec-04-clustering-algorithms §OQ-04-1 (deferred)
   → adr-08-final-recluster-strategy OQ-08-1 (deferred)
+
+planning-03-demo-v04 (V-04 데모 시나리오, 2026-05-20)
+  ← planning-02-speaker-engine (§3 FastAPI WS 골격, §2 사용처 경계)
+  ← adr-06-mono-only-v1-multichannel-v2 (§2 out: 다채널 v0.2, §5 mono only)
+  → spec-06-stt-adapter (§5 컴포넌트 경계 — stt-adapter 책임)
+  → spec-07-demo-ui-protocol (§5 컴포넌트 경계 — demo-ui + WS 프로토콜)
+
+spec-06-stt-adapter (V-04 STT 어댑터 계약, 2026-05-20)
+  ← planning-02-speaker-engine (§2 Out of Scope: STT, §3 Pattern B 통합)
+  ← adr-02-pattern-b-fanout-chain (fan-out 결정 인스턴스화)
+  ← planning-03-demo-v04 (§5 컴포넌트 경계 — stt-adapter 책임)
+
+spec-07-demo-ui-protocol (V-04 WS json schema, 2026-05-20)
+  ← planning-02-speaker-engine (§3 이벤트 2종 정의, §150 FastAPI WS demo)
+  ← planning-03-demo-v04 (§3 시나리오, §4 UI 요구사항)
 ```
