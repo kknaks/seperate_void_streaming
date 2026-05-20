@@ -258,6 +258,36 @@ class TestEmbeddingDim:
         assert isinstance(dim, int)
         assert dim > 0
 
+    def test_model_attribute_returns_correct_dim(self):
+        """model.dimension 속성 존재 → dummy forward 없이 정확한 dim 반환 (Bug A fix)."""
+        adapter = _make_adapter()
+        # stub 에서 emb_model_instance.dimension = EMB_DIM 설정됨
+        dim = adapter.embedding_dim
+        assert dim == EMB_DIM
+
+    def test_dummy_forward_when_model_attr_missing(self):
+        """model attribute 없을 때 dummy forward 로 dim 확정 (Bug A fix).
+
+        이 경로가 없으면 fallback 256 이 박혀 실 모델(512) 과 dim mismatch 발생.
+        """
+        adapter = _make_adapter()
+        # model 참조를 None 으로 → attribute 탐색 경로 전체 skip
+        adapter._embedding.model = None
+        adapter._embedding_dim = None  # 캐시 초기화
+
+        dim = adapter.embedding_dim
+        # _FakeEmbedding.__call__ 은 (1, 3, EMB_DIM) 반환 → dummy forward 경로로 EMB_DIM
+        assert isinstance(dim, int)
+        assert dim == EMB_DIM
+
+    def test_embedding_dim_cached_after_first_call(self):
+        """embedding_dim 은 1회 계산 후 캐시 (반복 호출 시 동일 값)."""
+        adapter = _make_adapter()
+        dim1 = adapter.embedding_dim
+        adapter._embedding.model = None  # 캐시 이후 model 변경해도 값 불변
+        dim2 = adapter.embedding_dim
+        assert dim1 == dim2
+
 
 # ── process_window ─────────────────────────────────────────────────────────
 

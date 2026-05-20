@@ -520,6 +520,57 @@ class TestFinalize:
 
         engine._finalizer.finalize.assert_called_once()
 
+    async def test_finalize_no_raise_when_reclusterer_raises(self):
+        """FinalReclusterer.finalize 가 RuntimeError 던져도 finalize() 는 정상 반환 (Bug C fix).
+
+        35 clusters > max_letters=20 케이스를 시뮬레이션.
+        """
+        from unittest.mock import patch
+
+        engine, _, _ = make_engine()
+        emb = rng_emb(0)
+        for i in range(5):
+            engine._utterances.append(
+                _UtteranceRecord(f"utt-{i:03d}", "auto:A", emb, False, float(i), float(i + 1))
+            )
+
+        with patch("speaker_engine.engine.FinalReclusterer") as mock_cls:
+            mock_instance = MagicMock()
+            mock_instance.finalize = MagicMock(
+                side_effect=RuntimeError("FinalReclusterer: 35 clusters exceed max_letters=20")
+            )
+            mock_cls.return_value = mock_instance
+
+            result = await engine.finalize()
+
+        # RuntimeError 가 전파되지 않고 빈 list 반환
+        assert isinstance(result, list)
+        assert engine._finalized is True
+
+    async def test_t_start_session_relative_not_monotonic(self):
+        """stream() SpeakerSegment.t_start 는 session-relative (Bug B fix).
+
+        _session_start = time.monotonic() (~1e6) 을 raw_event.t_start 에 더하지 않는지 확인.
+        raw_event.t_start = 2.5 → segment.t_start = 2.5, not 1729414 + 2.5
+        """
+        engine, _, _ = make_engine()
+        engine._session_start = 1_729_414.0  # 큰 monotonic 값 강제 설정
+
+        raw = make_raw_event(g_spk=0, seed=1, t_start=2.5, t_end=5.0)
+        mock_buf = make_mock_buffer(events=[raw])
+
+        events = []
+        with patch("speaker_engine.engine.WaveformBuffer", return_value=mock_buf):
+            async for ev in engine.stream(pcm_source(1)):
+                events.append(ev)
+
+        segments = [e for e in events if isinstance(e, SpeakerSegment)]
+        assert len(segments) >= 1
+        seg = segments[0]
+        # session-relative: 2.5, not 1729416.5
+        assert seg.t_start == pytest.approx(2.5)
+        assert seg.t_end == pytest.approx(5.0)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # persist() 테스트

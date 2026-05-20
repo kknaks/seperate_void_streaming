@@ -174,20 +174,50 @@ class DiartAdapter:
     # ------------------------------------------------------------------
     @property
     def embedding_dim(self) -> int:
-        """임베딩 차원 — 런타임 결정 (reference-07: legacy 512, community 256)."""
-        if self._embedding_dim is None:
-            try:
-                model = getattr(self._embedding, "model", None)
-                if model is not None:
-                    for attr in ("dimension", "embedding_dim", "output_size"):
-                        val = getattr(model, attr, None)
-                        if isinstance(val, int) and val > 0:
-                            self._embedding_dim = val
-                            break
-            except Exception:  # noqa: BLE001
-                pass
-            if self._embedding_dim is None:
-                self._embedding_dim = 256  # fallback; overridden by first process_window
+        """임베딩 차원 — 런타임 결정 (reference-07: legacy 512, community 256).
+
+        호출 시점이 첫 chunk 보다 빠를 수 있으므로 (예: SpeakerEngine.__aenter__
+        의 init_schema), embedding 모델 attribute → dummy forward 순으로 진짜
+        dim 을 확정한다. fallback 추정값을 쓰면 storage init_schema 가 잘못
+        잠겨서 첫 실 embedding 이 dim mismatch 로 거부된다.
+        """
+        if self._embedding_dim is not None:
+            return self._embedding_dim
+
+        try:
+            model = getattr(self._embedding, "model", None)
+            if model is not None:
+                for attr in ("dimension", "embedding_dim", "output_size"):
+                    val = getattr(model, attr, None)
+                    if isinstance(val, int) and val > 0:
+                        self._embedding_dim = val
+                        return self._embedding_dim
+        except Exception:  # noqa: BLE001
+            pass
+
+        import torch  # noqa: PLC0415
+
+        dummy_wav = np.zeros(WINDOW_SAMPLES, dtype=np.float32)
+        wav_tensor = torch.from_numpy(dummy_wav).float().unsqueeze(0).unsqueeze(-1)
+        seg_out = self._segmentation(wav_tensor)
+        emb_out = self._embedding(wav_tensor, seg_out)
+
+        if hasattr(emb_out, "detach"):
+            emb_array = emb_out.detach().cpu().numpy()
+        elif isinstance(emb_out, np.ndarray):
+            emb_array = emb_out
+        elif hasattr(emb_out, "numpy") and callable(emb_out.numpy):
+            emb_array = emb_out.numpy()
+        else:
+            emb_array = np.array(emb_out)
+        if emb_array.ndim == 3:
+            emb_array = emb_array[0]
+        if emb_array.ndim != 2 or emb_array.shape[0] == 0:
+            raise ModelLoadError(
+                f"embedding warm-up forward 가 dim 확정에 실패했습니다 "
+                f"(shape={emb_array.shape})."
+            )
+        self._embedding_dim = int(emb_array.shape[1])
         return self._embedding_dim
 
     # ------------------------------------------------------------------

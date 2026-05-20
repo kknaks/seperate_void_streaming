@@ -226,8 +226,8 @@ class SpeakerEngine:
                         label=label,
                         embedding=norm_emb,
                         is_locked=is_locked,
-                        t_start=self._session_start + raw_event.t_start,
-                        t_end=self._session_start + raw_event.t_end,
+                        t_start=raw_event.t_start,
+                        t_end=raw_event.t_end,
                     )
                     self._utterances.append(utt)
 
@@ -328,11 +328,26 @@ class SpeakerEngine:
             center_labels = []
             active_centers = np.empty((0, 1))
 
-        candidates, label_changes = self._finalizer.finalize(
-            utterances=self._utterances,
-            online_centers=active_centers,
-            center_labels=center_labels,
+        # Bug C fix: adaptive min_cluster_size (T-023f pattern) prevents M > max_letters RuntimeError
+        _N_auto = sum(1 for u in self._utterances if not u.is_locked)
+        _adaptive_mcs = max(2, _N_auto // 20)  # max_letters=20
+        _finalizer = (
+            FinalReclusterer(min_cluster_size=_adaptive_mcs)
+            if _adaptive_mcs > 2
+            else self._finalizer
         )
+        try:
+            candidates, label_changes = _finalizer.finalize(
+                utterances=self._utterances,
+                online_centers=active_centers,
+                center_labels=center_labels,
+            )
+        except RuntimeError as _exc:
+            logger.warning(
+                "FinalReclusterer RuntimeError — online label fallback (no recluster): %s", _exc
+            )
+            candidates = []
+            label_changes = []
 
         # ── utterance buffer 라벨 갱신 (option B: 내부만, 사용처 yield X) ─
         utt_id_to_new: dict[str, str] = {}
@@ -451,8 +466,8 @@ class SpeakerEngine:
             label=label,
             embedding=norm_emb,
             is_locked=is_locked,
-            t_start=self._session_start + raw_event.t_start,
-            t_end=self._session_start + raw_event.t_end,
+            t_start=raw_event.t_start,
+            t_end=raw_event.t_end,
         )
         self._utterances.append(utt)
 
