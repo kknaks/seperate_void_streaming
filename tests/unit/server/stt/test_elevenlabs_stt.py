@@ -1,6 +1,7 @@
-"""Unit tests for ElevenLabsSTT (spec-06 §6 unit 카테고리).
+"""Unit tests for ElevenLabsSTT (spec-06 §6 unit 카테고리, PLAN-006-T-003).
 
 WS 는 mock 으로 대체 — 실 API 호출 없음.
+commit_strategy="manual" / "vad" 양 모드 포함.
 """
 
 from __future__ import annotations
@@ -56,18 +57,27 @@ class _FakeWS:
         # yield to event loop first so sender task can run
         await asyncio.sleep(0)
         for msg in self._incoming:
+            if self._closed:
+                return
             yield msg
             await asyncio.sleep(0)
 
 
-def _make_stt(incoming: list[str]) -> tuple[ElevenLabsSTT, _FakeWS]:
+def _make_stt(
+    incoming: list[str],
+    commit_strategy: str = "manual",
+) -> tuple[ElevenLabsSTT, _FakeWS]:
     fake_ws = _FakeWS(incoming)
 
     @asynccontextmanager
     async def _connect(*args, **kwargs):
         yield fake_ws
 
-    stt = ElevenLabsSTT(api_key="test-key-1234", language="ko")
+    stt = ElevenLabsSTT(
+        api_key="test-key-1234",
+        language="ko",
+        commit_strategy=commit_strategy,
+    )
     stt._connect_patch = patch("websockets.connect", side_effect=_connect)
     return stt, fake_ws
 
@@ -196,9 +206,9 @@ async def test_feed_sends_base64_audio_to_ws():
 
 
 async def test_close_sends_commit_signal():
-    """close() 후 stream() 종료 시 commit=True 인 메시지가 WS 로 전송되어야 함."""
+    """manual 모드: close() 후 stream() 종료 시 commit=True 메시지가 WS 로 전송."""
     msgs: list[str] = []
-    stt, fake_ws = _make_stt(msgs)
+    stt, fake_ws = _make_stt(msgs, commit_strategy="manual")
 
     await stt.close()
     with stt._connect_patch:
@@ -258,9 +268,9 @@ def test_missing_api_key_raises_value_error():
 
 
 async def test_ws_graceful_close_on_stream_end():
-    """stream() 이 종료될 때 sender task 가 cancel 되어야 함 (WS 연결 누수 없음)."""
+    """manual 모드: stream() 종료 시 sender task 가 cancel 되어야 함 (WS 연결 누수 없음)."""
     msgs: list[str] = []
-    stt, fake_ws = _make_stt(msgs)
+    stt, fake_ws = _make_stt(msgs, commit_strategy="manual")
     await stt.close()
 
     with stt._connect_patch:
@@ -269,3 +279,76 @@ async def test_ws_graceful_close_on_stream_end():
 
     # 예외 없이 완료 = graceful close 확인
     assert True
+
+
+# ---------------------------------------------------------------------------
+# VAD 모드 (PLAN-006-T-003)
+# ---------------------------------------------------------------------------
+
+
+async def test_vad_mode_no_commit_on_close():
+    """vad 모드: close() 시 commit=True 메시지를 전송하지 않아야 함."""
+    msgs: list[str] = []
+    stt, fake_ws = _make_stt(msgs, commit_strategy="vad")
+    await stt.close()
+
+    with stt._connect_patch:
+        async for _ in stt.stream():
+            pass
+
+    commit_sends = [
+        s for s in fake_ws._sent if '"commit": true' in s or '"commit":true' in s
+    ]
+    assert len(commit_sends) == 0
+    # WS 가 close() 됐는지 확인
+    assert fake_ws._closed is True
+
+
+async def test_vad_mode_receives_committed_transcript():
+    """vad 모드: committed_transcript_with_timestamps 가 정상 파싱되어야 함.
+
+    close() 선제 호출 X — _iter() 가 자연 소진되어 종료 (vad 패턴).
+    """
+    words = [
+        {"text": "회의", "start": 0.5, "end": 0.9, "type": "word"},
+        {"text": "시작", "start": 1.0, "end": 1.4, "type": "word"},
+    ]
+    msgs = [
+        _msg("committed_transcript_with_timestamps", text="회의 시작", words=words),
+    ]
+    stt, _ = _make_stt(msgs, commit_strategy="vad")
+    # close() 미호출 — 메시지 소진 후 sender_task cancel 로 종료
+
+    with stt._connect_patch:
+        results: list[Transcript] = []
+        async for t in stt.stream():
+            results.append(t)
+
+    assert len(results) == 2
+    assert results[0].text == "회의"
+    assert results[0].t_start == pytest.approx(0.5)
+    assert results[0].is_final is True
+    assert results[1].text == "시작"
+    assert results[1].is_final is True
+
+
+async def test_vad_mode_partial_and_final_both_emitted():
+    """vad 모드: partial + final 모두 emit (§OQ-06-2 항목 2 — commit_strategy 무관).
+
+    close() 선제 호출 X — _iter() 가 자연 소진되어 종료 (vad 패턴).
+    """
+    msgs = [
+        _msg("partial_transcript", text="안녕"),
+        _msg("committed_transcript", text="안녕하세요"),
+    ]
+    stt, _ = _make_stt(msgs, commit_strategy="vad")
+    # close() 미호출 — 메시지 소진 후 sender_task cancel 로 종료
+
+    with stt._connect_patch:
+        results: list[Transcript] = []
+        async for t in stt.stream():
+            results.append(t)
+
+    assert len(results) == 2
+    assert results[0].is_final is False
+    assert results[1].is_final is True

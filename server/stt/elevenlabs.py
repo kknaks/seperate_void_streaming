@@ -7,6 +7,9 @@
 
 WS 재연결 정책: fail-fast (§OQ-06-2 항목 1 결정).
 partial/final 노출: 둘 다 emit (§OQ-06-2 항목 2 결정).
+commit_strategy: "vad" (기본, PLAN-006-T-003) 또는 "manual".
+  vad — ElevenLabs 자동 silence 감지 + phrase 자동 commit (adr-10 STT-driven Chain).
+  manual — close() 시 명시 commit 신호 전송 (레거시).
 """
 
 from __future__ import annotations
@@ -38,6 +41,11 @@ class ElevenLabsSTT:
 
     Pattern B fan-out (adr-02): feed() 는 asyncio.create_task 로 호출,
     stream() 은 별도 태스크에서 async for 로 소비.
+
+    commit_strategy:
+        "vad" (기본) — ElevenLabs 자동 silence 감지 → phrase auto-commit.
+            close() 시 WS close 로 종료 신호 전달.
+        "manual" — close() 시 commit=True 메시지 전송 (레거시).
     """
 
     def __init__(
@@ -45,6 +53,9 @@ class ElevenLabsSTT:
         api_key: str | None = None,
         language: str = "ko",
         include_timestamps: bool = True,
+        commit_strategy: str = "vad",
+        vad_silence_threshold_secs: float = 1.5,
+        vad_threshold: float = 0.4,
     ) -> None:
         resolved_key = api_key or os.environ.get("ELEVENLABS_API_KEY")
         if not resolved_key:
@@ -54,6 +65,9 @@ class ElevenLabsSTT:
         self._api_key = resolved_key
         self._language = language
         self._include_timestamps = include_timestamps
+        self._commit_strategy = commit_strategy
+        self._vad_silence_threshold_secs = vad_silence_threshold_secs
+        self._vad_threshold = vad_threshold
         self._send_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
 
     async def feed(self, chunk: bytes) -> None:
@@ -63,7 +77,9 @@ class ElevenLabsSTT:
     async def stream(self) -> AsyncIterator[Transcript]:
         """ElevenLabs WS 에 연결 후 Transcript 를 yield.
 
-        close() 호출 → commit 시그널 전송 → 서버 응답 수신 후 WS close → 제너레이터 종료.
+        close() 동작:
+          vad 모드: WS close → 서버 자동 commit 완료된 메시지 flush 후 종료.
+          manual 모드: commit 신호 전송 → 서버 최종 응답 수신 후 WS close → 종료.
         WS 연결 실패 또는 끊김 시 즉시 예외 발생 (fail-fast, §OQ-06-2 항목 1).
         """
         try:
@@ -77,8 +93,13 @@ class ElevenLabsSTT:
             f"{_WS_URL}"
             f"?audio_format=pcm_16000"
             f"&language_code={self._language}"
-            f"&commit_strategy=manual"
+            f"&commit_strategy={self._commit_strategy}"
         )
+        if self._commit_strategy == "vad":
+            url += (
+                f"&vad_silence_threshold_secs={self._vad_silence_threshold_secs}"
+                f"&vad_threshold={self._vad_threshold}"
+            )
         if self._include_timestamps:
             url += "&include_timestamps=true"
 
@@ -101,25 +122,34 @@ class ElevenLabsSTT:
                     pass
 
     async def close(self) -> None:
-        """graceful 종료 — None 센티넬을 큐에 넣어 sender 가 commit 전송 후 종료하도록."""
+        """graceful 종료 — None 센티넬을 큐에 넣어 _run_sender 가 처리하도록."""
         await self._send_queue.put(None)
 
     async def _run_sender(self, ws: object) -> None:
-        """큐에서 청크를 꺼내 WS 로 전송. None 수신 시 commit 전송 후 종료."""
+        """큐에서 청크를 꺼내 WS 로 전송.
+
+        None 수신 시:
+          manual: commit=True 메시지 전송 후 종료.
+          vad: WS close() 호출 후 종료 (auto-commit 이므로 명시 commit 불필요).
+        """
         while True:
             chunk = await self._send_queue.get()
             if chunk is None:
-                await ws.send(  # type: ignore[attr-defined]
-                    json.dumps(
-                        {
-                            "message_type": "input_audio_chunk",
-                            "audio_base_64": "",
-                            "commit": True,
-                            "sample_rate": 16000,
-                        }
+                if self._commit_strategy == "manual":
+                    await ws.send(  # type: ignore[attr-defined]
+                        json.dumps(
+                            {
+                                "message_type": "input_audio_chunk",
+                                "audio_base_64": "",
+                                "commit": True,
+                                "sample_rate": 16000,
+                            }
+                        )
                     )
-                )
-                logger.debug("ElevenLabsSTT: commit 전송")
+                    logger.debug("ElevenLabsSTT: commit 전송 (manual)")
+                else:
+                    logger.debug("ElevenLabsSTT: VAD 모드 종료 — WS close")
+                    await ws.close()  # type: ignore[attr-defined]
                 break
             payload = json.dumps(
                 {
