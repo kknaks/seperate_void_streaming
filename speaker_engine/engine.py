@@ -62,7 +62,7 @@ class SpeakerEngine:
         embedding_model: str = "pyannote/embedding",
         device: str | None = None,
         phrase_short_threshold_s: float = 1.5,
-        phrase_auto_threshold: float = 0.5,
+        phrase_auto_threshold: float = 0.35,
     ) -> None:
         # env 해석 (인자 우선 → env fallback) — EnvironmentError 가능 (F-04)
         config = load_engine_config(storage_url, hf_token)
@@ -465,9 +465,11 @@ class SpeakerEngine:
 
         stream 경로 centroids (OnlineSpeakerClusterer) 와 phrase 경로 centroids
         (_phrase_centroids) 를 모두 탐색 (단방향 공유: stream→phrase).
+        _phrase_centroids 매칭 성공 시 running average (0.7 old + 0.3 new) 로 갱신.
         """
         best_label: str | None = None
         best_sim: float = -2.0
+        best_phrase_idx: int = -1  # _phrase_centroids 매칭 시 인덱스, 없으면 -1
 
         # 1. online clusterer centroids (stream 경로 공유)
         centers = self._clusterer.centers
@@ -481,15 +483,23 @@ class SpeakerEngine:
                 if sim > best_sim:
                     best_sim = sim
                     best_label = OnlineSpeakerClusterer.idx_to_letter(idx)
+                    best_phrase_idx = -1
 
         # 2. phrase 경로 자체 centroids
-        for centroid, lbl in self._phrase_centroids:
+        for i, (centroid, lbl) in enumerate(self._phrase_centroids):
             sim = float(np.dot(centroid, norm_emb))
             if sim > best_sim:
                 best_sim = sim
                 best_label = lbl
+                best_phrase_idx = i
 
         if best_sim >= self._phrase_auto_threshold and best_label is not None:
+            # _phrase_centroids 매칭이면 running average 갱신 (stream clusterer 는 자체 update)
+            if best_phrase_idx >= 0:
+                old, lbl = self._phrase_centroids[best_phrase_idx]
+                updated = 0.7 * old + 0.3 * norm_emb
+                updated = updated / (np.linalg.norm(updated) + 1e-9)
+                self._phrase_centroids[best_phrase_idx] = (updated, lbl)
             return best_label
 
         # 3. 신규 letter 발급 + phrase centroid 등록
