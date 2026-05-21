@@ -1,8 +1,8 @@
 # medi_docs/_map.md
 
-> 갱신 (PLAN-004-T-013 architect, 2026-05-20). 재생 master clock 재설계: spec-07 §2 종료 시그널 + §4 재생 컨트롤 필수 승격 + §5 즉시 송신 폐기(deprecated) → AudioWorklet capture 구조 + §6 v0.2 전환 비용 메모 + §OQ-07-2 신설 (워커 결정 사항 2건). planning-03 §3 mermaid (AudioWorklet 시퀀스) + §5 demo-ui 경계 갱신. lineage 변경 없음.
+> 갱신 (PLAN-005-T-001 architect, 2026-05-21). 3단계 라이브 grouping 박제: spec-07 §3 신규 이벤트 2건(labeled_word, final_grouped) + segment UI 표시 폐기 + §4 3단계 UI 요구사항 + §OQ-07-1 resolved. planning-03 §3 mermaid(3단계 시퀀스) + §4 라이브 라벨링 KPI(측정 안 함) + §5 live grouping layer 경계 추가 + §6 DoD 3단계 항목. adr-09 신설 (서버 매핑 책임 이전).
 
-_총 21 문서 (planning 3 / plan 1 / spec 8 / policy 0 / adr 8 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
+_총 22 문서 (planning 3 / plan 1 / spec 8 / policy 0 / adr 9 / runbook 1 / test 0 / release-notes 0 / retrospective 0)_
 
 ## 카테고리별
 
@@ -30,6 +30,7 @@ _총 21 문서 (planning 3 / plan 1 / spec 8 / policy 0 / adr 8 / runbook 1 / te
 - `adr-06-mono-only-v1-multichannel-v2.md`
 - `adr-07-helper-scope.md`
 - `adr-08-final-recluster-strategy.md`
+- `adr-09-server-live-grouping.md` _(서버 live grouping layer — STT-화자 매핑 클라→서버 이전, §OQ-07-1 resolved, 2026-05-21)_
 
 ### spec — 8
 
@@ -39,7 +40,7 @@ _총 21 문서 (planning 3 / plan 1 / spec 8 / policy 0 / adr 8 / runbook 1 / te
 - `spec-04-clustering-algorithms.md` _(status: ready)_
 - `spec-05-test-strategy.md` _(status: ready)_
 - `spec-06-stt-adapter.md` _(ElevenLabs streaming STT 재설계, flush_window 폐기, §OQ-06-1 무효/§OQ-06-2 신설, 2026-05-20)_
-- `spec-07-demo-ui-protocol.md` _(재생 master clock + AudioWorklet capture 재설계 — §5 즉시 송신 폐기, §OQ-07-1/07-2 박제, 2026-05-20)_
+- `spec-07-demo-ui-protocol.md` _(3단계 라이브 표시 — labeled_word/final_grouped 신규, §OQ-07-1 resolved(adr-09), §OQ-07-2 박제, 2026-05-21)_
 - `spec-08-docker-compose.md` _(데모 서버 Docker 패키징 + compose 단일 서비스, §OQ-08-1 포트 선택, 2026-05-20)_
 
 ## lineage 요약
@@ -156,10 +157,16 @@ spec-06-stt-adapter (ElevenLabs streaming STT 재설계, flush_window 폐기, 20
   ← adr-02-pattern-b-fanout-chain (fan-out 결정 인스턴스화 — 독립 두 채널)
   ← planning-03-demo-v04 (§5 컴포넌트 경계 — stt-adapter 책임, ElevenLabs 결정)
 
-spec-07-demo-ui-protocol (segment+stt 분리 이벤트, §OQ-07-1 박제, 2026-05-20)
+spec-07-demo-ui-protocol (3단계 라이브 표시, §OQ-07-1 resolved, 2026-05-21)
   ← planning-02-speaker-engine (§3 이벤트 2종 정의, §150 FastAPI WS demo)
   ← planning-03-demo-v04 (§3 시나리오, §4 UI 요구사항)
   ← spec-06-stt-adapter (§3 stt 이벤트 구조, §2 시간 정렬 정책)
+  ← adr-09-server-live-grouping (live grouping layer 결정 — labeled_word/final_grouped 신규 이벤트 근거)
+
+adr-09-server-live-grouping (서버 매핑 책임 이전, 2026-05-21)
+  ← spec-07-demo-ui-protocol (§OQ-07-1 — 역전된 결정)
+  ← planning-03-demo-v04 (§5 컴포넌트 경계 — live grouping layer)
+  ← adr-02-pattern-b-fanout-chain (Pattern B 유지 — fan-out 구조 불변)
 
 spec-08-docker-compose (데모 서버 Docker 패키징 + compose 단일 서비스, 2026-05-20)
   ← planning-03-demo-v04 (§2 Docker 범위 결정, §6 DoD — compose e2e)

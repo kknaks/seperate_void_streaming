@@ -9,7 +9,8 @@ sources:
   - "[[planning-02-speaker-engine]]"
   - "[[planning-03-demo-v04]]"
   - "[[spec-06-stt-adapter]]"
-tags: [spec, websocket, json-schema, demo-ui, protocol, pcm16, stt, elevenlabs]
+  - "[[adr-09-server-live-grouping]]"
+tags: [spec, websocket, json-schema, demo-ui, protocol, pcm16, stt, elevenlabs, live-grouping]
 ---
 
 # 데모 UI WS 프로토콜 — json 이벤트 스키마 + 클라이언트 책임
@@ -30,7 +31,7 @@ ws://host/audio/{visit_id}
 |---|---|---|
 | 클라이언트 → 서버 | 바이너리 | PCM 16-bit signed LE, 16kHz, mono |
 | 클라이언트 → 서버 | 텍스트 JSON | `{"type":"eof"}` — 종료 시그널 (선택, 권장) |
-| 서버 → 클라이언트 | 텍스트 JSON | 5종 이벤트 (`segment`, `stt`, `relabel`, `done`, `error`) |
+| 서버 → 클라이언트 | 텍스트 JSON | 7종 이벤트 (`segment`, `stt`, `labeled_word`, `final_grouped`, `relabel`, `done`, `error`) |
 
 `{visit_id}` — 세션 식별자 (임의 문자열, URL-safe). 현재 데모는 영속화하지 않음 (`memory://` 스토어).
 
@@ -61,7 +62,9 @@ ws://host/audio/{visit_id}
 
 ### segment (신규 — v0.1.0)
 
-화자 분리 단위 이벤트. `SpeakerSegment` 직접 직렬화. STT 텍스트 없음 — 클라이언트가 `stt` 이벤트와 시간 좌표로 결합 (§4).
+화자 분리 단위 이벤트. `SpeakerSegment` 직접 직렬화. 서버 live grouping layer 가 이 이벤트를 trigger 로 삼아 `labeled_word` 를 emit 한다.
+
+> **UI 직접 표시 폐기 (v0.1.1)**: 클라이언트는 `segment` 이벤트를 우-중 영역에 직접 표시하지 않는다. 우-중은 `labeled_word` 이벤트만 사용. `segment` 는 디버깅 목적으로 수신 가능하나 UI 렌더 대상 X.
 
 ```json
 {
@@ -77,7 +80,7 @@ ws://host/audio/{visit_id}
 | 필드 | 타입 | 단위 / 범위 | 설명 |
 |---|---|---|---|
 | `type` | string | `"segment"` | 고정값 |
-| `utterance_id` | string | UUID4 형식 | 발화 단위 식별자 (relabel 과 연결) |
+| `utterance_id` | string | UUID4 형식 | 발화 단위 식별자 (relabel + labeled_word.segment_id 와 연결) |
 | `label` | string | `"registered:이름"` / `"stored:이름"` / `"auto:A"` | 화자 라벨 — relabel 로 소급 변경 가능 |
 | `t_start` | float | 초, session-relative (0.0~) | 발화 시작 시각 |
 | `t_end` | float | 초, session-relative | 발화 종료 시각 |
@@ -85,7 +88,7 @@ ws://host/audio/{visit_id}
 
 ### stt (신규 — v0.1.0)
 
-ElevenLabs streaming STT 결과 이벤트. 화자 라벨 없음 — 클라이언트가 `segment` 이벤트와 시간 좌표로 결합 (§4).
+ElevenLabs streaming STT 결과 이벤트. 화자 라벨 없음 — 클라이언트는 우-상 STT 영역에만 사용. 시간 기반 매핑은 서버 live grouping layer 책임 (`labeled_word` 참조).
 
 ```json
 {
@@ -104,6 +107,65 @@ ElevenLabs streaming STT 결과 이벤트. 화자 라벨 없음 — 클라이언
 | `t_end` | float | 초, session-relative | STT 자체 timestamp |
 | `text` | string | 한국어 텍스트 | 인식 텍스트. `is_final=false` 이면 partial (갱신 가능) |
 | `is_final` | boolean | | `false`: partial (실시간 갱신), `true`: 확정 텍스트 |
+
+### labeled_word (신규 — v0.1.1)
+
+서버 live grouping layer 가 STT 단어에 화자 라벨을 attach 한 뒤 emit. `stt` 이벤트 수신 시점보다 1~2초 지연 (segment 도착 후 매핑). 우-중 매핑 영역에 사용.
+
+```json
+{
+  "type": "labeled_word",
+  "label": "auto:A",
+  "t_start": 0.0,
+  "t_end": 0.0,
+  "text": "단어",
+  "segment_id": "string"
+}
+```
+
+| 필드 | 타입 | 단위 / 범위 | 설명 |
+|---|---|---|---|
+| `type` | string | `"labeled_word"` | 고정값 |
+| `label` | string | `"registered:이름"` / `"stored:이름"` / `"auto:A"` | 서버가 attach 한 화자 라벨 |
+| `t_start` | float | 초, session-relative | 단어 시작 시각 (stt word-level timestamp) |
+| `t_end` | float | 초, session-relative | 단어 종료 시각 |
+| `text` | string | 한국어 텍스트 | 인식 단어 (확정 텍스트만 emit — `is_final=true` 기준) |
+| `segment_id` | string | UUID4 형식 | 매핑 출처 `segment.utterance_id` — relabel 소급 갱신 시 기준 |
+
+클라이언트 처리 지침:
+- 같은 `label` 이 연속이면 한 줄에 concat.
+- `relabel` 이벤트 수신 시 `segment_id` 기준으로 해당 단어들의 라벨 소급 갱신.
+
+### final_grouped (신규 — v0.1.1)
+
+`finalize` 완료 후 canonical 라벨 기준으로 utterance 단위로 재구성한 최종 결과. `done` 이벤트와 함께 (또는 직후) emit. 우-하 최종 영역에 사용.
+
+```json
+{
+  "type": "final_grouped",
+  "utterances": [
+    {
+      "label": "auto:A",
+      "t_start": 0.0,
+      "t_end": 0.0,
+      "text": "한 발화 전체 텍스트"
+    }
+  ]
+}
+```
+
+| 필드 | 타입 | 단위 / 범위 | 설명 |
+|---|---|---|---|
+| `type` | string | `"final_grouped"` | 고정값 |
+| `utterances` | array | — | 발화 단위 목록, t_start 오름차순 정렬 |
+| `utterances[].label` | string | `"registered:이름"` / `"auto:A"` | canonical 라벨 (relabel 반영 후) |
+| `utterances[].t_start` | float | 초, session-relative | 발화 시작 |
+| `utterances[].t_end` | float | 초, session-relative | 발화 종료 |
+| `utterances[].text` | string | 한국어 텍스트 | 발화 구간 내 STT 단어 전체 concat |
+
+클라이언트 처리 지침:
+- 수신 시 우-하 영역 **wipe 후 재구성**.
+- `done` 이벤트보다 먼저 도착할 수 있음 — `done` 수신 전까지는 progress indicator 표시.
 
 ### utterance _(deprecated v0.1.0)_
 
@@ -186,14 +248,22 @@ anchor: `fastapi_ws_demo.py:114`
 
 ## §4 라이브 UI 요구사항
 
+3단계 표시 모델 (v0.1.1, adr-09):
+
+| 단계 | 이벤트 | UI 영역 | 지연 | 상세 |
+|---|---|---|---|---|
+| 1 (즉시) | `stt` | 우-상 STT 자막 | 0~수백ms | `is_final=false` 이면 partial 갱신, `true` 이면 확정. 라벨 없음 |
+| 2 (라벨 attach) | `labeled_word` | 우-중 매핑 결과 | 1~2초 | `[label] text` 형태로 누적. 같은 label 연속이면 한 줄 concat. `relabel` 수신 시 `segment_id` 기준 소급 갱신 |
+| 3 (done 후) | `final_grouped` | 우-하 최종 결과 | done 이후 | 수신 즉시 우-하 wipe + `[화자] 전체 텍스트` 한 줄 단위 재구성. done 전까지는 progress 표시 |
+
 | 기능 | 상세 |
 |---|---|
 | 파일 업로드 인풋 | `<input type="file" accept=".wav,.mp3,.m4a">` |
 | 재생 컨트롤 | `<audio>` 재생 **master clock — 필수**. `play` → WS 송신 시작 / `pause` → WS 송신 일시정지 / `ended` → `eof` 송신 + done 수신 대기 → WS close (§5 참조) |
-| 우-상 STT 자막 | `stt` 이벤트 실시간 표시 — `is_final=false` 이면 partial 갱신, `true` 이면 확정 |
-| 우-중 발화 로그 | `segment` 이벤트 기반 — 화자별 색상 구분 + 시간(t_start-t_end) |
-| 우-하 최종 매핑 결과 | 클라이언트가 `stt.t_start` 가 `segment` 구간 `[t_start, t_end]` 에 포함되면 같은 행에 결합 |
-| relabel 소급 업데이트 | `relabel` 이벤트 수신 시 기존 발화 로그의 라벨·색상 즉시 갱신 (`utterance_id` 기준) |
+| 우-상 STT 자막 | `stt` 이벤트 — `is_final=false` 이면 partial 갱신, `true` 이면 확정. 라벨 없음 |
+| 우-중 매핑 결과 | `labeled_word` 이벤트 — `[label] text` 누적, 같은 label 연속 → 한 줄 concat. `segment` 직접 사용 X |
+| 우-하 최종 결과 | `final_grouped` 이벤트 — 수신 시 wipe 후 utterance 단위 `[화자] 전체 텍스트` 재구성 |
+| relabel 소급 갱신 | `relabel` 이벤트 수신 시 우-중 `labeled_word` 의 `segment_id` 기준 라벨 갱신 |
 | 종료 시 candidates 요약 | `done` 이벤트 수신 시 화자별 발화 수 + 총 시간 표 표시 |
 | 에러 표시 | `error` 이벤트 또는 WS 끊김 시 사용자에게 메시지 표시 |
 
@@ -284,15 +354,15 @@ await ws.send_json({type:"done"})      ← WebSocketDisconnect 또는 무시
 
 ---
 
-## §OQ-07-1 — STT ↔ segment 서버 매핑 layer (미결, v0.2 검토)
+## §OQ-07-1 — STT ↔ segment 서버 매핑 layer _(resolved, 2026-05-21)_
 
-> **Status**: 미결 — v0.1.0 은 클라이언트 책임으로 확정. v0.2 에서 재검토.
+> **Status**: **resolved** — v0.2 대기 철회. v0.1.1 에서 서버 live grouping layer 로 앞당겨 결정 (adr-09-server-live-grouping).
 >
-> **현재 결정 (v0.1)**: 클라이언트가 `stt.t_start` 가 `segment` 구간에 포함되는지 직접 판단 (§4 우-하 매핑).
+> **결정**: 서버 `audio_ws` 핸들러 안에 live grouping layer 추가. `segment` 도착 시 `pending_words` 에서 시간 구간 매칭 단어를 `labeled_word` 로 emit. 클라이언트 매핑 로직 제거.
 >
-> **v0.2 서버 매핑 layer 검토 안**: 서버가 `segment` emit 시점에 현재까지 수신한 `stt` 결과를 매핑하여 단일 이벤트로 결합. 지연 vs 클라이언트 단순화 trade-off.
+> **근거**: PLAN-004 T-014 시연에서 클라이언트 매핑 복잡도 + 표시 품질 양쪽 문제 확인. raw streaming DER ~20% 수준이므로 즉시 정확 매핑 불가 → 서버가 1~2초 지연 허용 후 단어 단위 attach 하는 방식이 UX 상 더 나음.
 >
-> **재검토 트리거**: 클라이언트 매핑 구현 복잡도가 허용 한계 초과 시, 또는 v0.2 기능 기획 시.
+> **구현 대상**: T-002 (realtime-api 워커).
 
 ---
 
