@@ -35,6 +35,7 @@ from typing import AsyncIterator
 try:
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect
     from fastapi.staticfiles import StaticFiles
+    from starlette.websockets import WebSocketState
 except ImportError as e:  # pragma: no cover
     raise ImportError(
         "fastapi 가 설치되지 않았습니다. 'pip install fastapi uvicorn' 을 실행하세요."
@@ -139,7 +140,15 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
                 "text": text,
             }
             phrase_log.append(entry)
-            await ws.send_json({"type": "labeled_phrase", **entry})
+            logger.info(
+                "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB text=%r",
+                t_start, t_end, t_end - t_start, label, len(phrase_words),
+                len(pcm_slice), text[:60],
+            )
+            if ws.client_state == WebSocketState.CONNECTED:
+                await ws.send_json({"type": "labeled_phrase", **entry})
+            else:
+                logger.info("WS already disconnected before labeled_phrase: visit_id=%s", visit_id)
             phrase_words.clear()
 
         async for transcript in stt.stream():
@@ -171,9 +180,12 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
         async with engine:
             await asyncio.gather(pcm_loop(), stt_loop())
 
-            final_utterances = _merge_consecutive_phrases(phrase_log)
-            await ws.send_json({"type": "final_grouped", "utterances": final_utterances})
-            await ws.send_json({"type": "done", "visit_id": visit_id})
+            if ws.client_state == WebSocketState.CONNECTED:
+                final_utterances = _merge_consecutive_phrases(phrase_log)
+                await ws.send_json({"type": "final_grouped", "utterances": final_utterances})
+                await ws.send_json({"type": "done", "visit_id": visit_id})
+            else:
+                logger.info("WS already disconnected before final_grouped: visit_id=%s", visit_id)
 
     except WebSocketDisconnect:
         logger.info("WS disconnected: visit_id=%s", visit_id)

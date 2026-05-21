@@ -12,6 +12,7 @@ HF_TOKEN / ELEVENLABS_API_KEY 불필요 (mock 환경).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import struct
 from typing import AsyncIterator
@@ -239,4 +240,168 @@ class TestSttChainEventOrder:
         assert received, "이벤트 미수신"
         assert received[-1]["type"] == "done", (
             f"마지막 이벤트가 done 이 아님: {received[-1]['type']}"
+        )
+
+
+class TestWsStateGuard:
+    """WS state guard 검증 (PLAN-006-T-008 신규).
+
+    race condition: WS closed 직후 server 가 emit 시도 → RuntimeError.
+    guard: ws.client_state == WebSocketState.CONNECTED 확인 후 send.
+    """
+
+    def test_final_grouped_skipped_when_ws_closed(self):
+        """labeled_phrase 직후 DISCONNECTED → final_grouped/done emit 없이 예외 없이 종료."""
+        try:
+            from starlette.testclient import TestClient
+            from starlette.websockets import WebSocket, WebSocketState
+        except ImportError:
+            pytest.skip("starlette 없음")
+
+        try:
+            import examples.fastapi_ws_demo as _demo_mod
+            from examples.fastapi_ws_demo import app
+        except ImportError as exc:
+            pytest.skip(f"fastapi_ws_demo import 실패: {exc}")
+
+        # Barrier STT: pcm_loop 가 stt.close() 를 호출한 후에야 transcript 를 yield
+        # → identify_phrase 가 실행될 때 pcm_loop 는 이미 종료 (ws.receive 호출 없음)
+        class _BarrierSTT:
+            def __init__(self, transcripts_list):
+                self._transcripts = transcripts_list
+                self._closed = False
+
+            async def feed(self, chunk):
+                pass
+
+            async def stream(self):
+                while not self._closed:
+                    await asyncio.sleep(0)
+                for t in self._transcripts:
+                    yield t
+
+            async def close(self):
+                self._closed = True
+
+        transcripts = [Transcript(t_start=0.1, t_end=0.5, text="테스트", is_final=True)]
+        fake_stt = _BarrierSTT(transcripts)
+        fake_engine = _FakeEngine()
+
+        original_accept = WebSocket.accept
+
+        async def capturing_accept(self_ws, *args, **kwargs):
+            result = await original_accept(self_ws, *args, **kwargs)
+            orig_send = self_ws.send_json  # bound to original, captured before spy override
+
+            async def instance_spy(data, mode="text"):
+                t = data.get("type")
+                if t == "labeled_phrase":
+                    await orig_send(data, mode=mode)
+                    # labeled_phrase 전송 성공 후 race condition 시뮬레이션
+                    self_ws.client_state = WebSocketState.DISCONNECTED
+                elif t not in ("final_grouped", "done"):
+                    await orig_send(data, mode=mode)
+                # final_grouped / done: guard 가 막아야 하므로 여기 도달하면 안 됨
+
+            self_ws.send_json = instance_spy
+            return result
+
+        client = TestClient(app, raise_server_exceptions=False)
+        received: list[dict] = []
+        with (
+            patch.object(_demo_mod, "ElevenLabsSTT", return_value=fake_stt),
+            patch.object(_demo_mod, "SpeakerEngine", return_value=fake_engine),
+            patch.object(WebSocket, "accept", capturing_accept),
+        ):
+            try:
+                with client.websocket_connect("/audio/test-guard-final") as wsc:
+                    wsc.send_bytes(_sin_pcm())
+                    wsc.send_text(json.dumps({"type": "eof"}))
+                    received = _collect(wsc, max_iter=50)
+            except Exception:
+                pass
+
+        assert any(m.get("type") == "labeled_phrase" for m in received), "labeled_phrase 미수신"
+        assert not any(m.get("type") == "final_grouped" for m in received), (
+            "guard 실패: final_grouped 가 DISCONNECTED 상태에서 전송됨"
+        )
+        assert not any(m.get("type") == "done" for m in received), (
+            "guard 실패: done 가 DISCONNECTED 상태에서 전송됨"
+        )
+
+    def test_labeled_phrase_skipped_when_ws_closed(self):
+        """phrase flush 중 DISCONNECTED → labeled_phrase emit 없이 예외 없이 종료."""
+        try:
+            from starlette.testclient import TestClient
+            from starlette.websockets import WebSocket, WebSocketState
+        except ImportError:
+            pytest.skip("starlette 없음")
+
+        try:
+            import examples.fastapi_ws_demo as _demo_mod
+            from examples.fastapi_ws_demo import app
+        except ImportError as exc:
+            pytest.skip(f"fastapi_ws_demo import 실패: {exc}")
+
+        class _BarrierSTT:
+            def __init__(self, transcripts_list):
+                self._transcripts = transcripts_list
+                self._closed = False
+
+            async def feed(self, chunk):
+                pass
+
+            async def stream(self):
+                while not self._closed:
+                    await asyncio.sleep(0)
+                for t in self._transcripts:
+                    yield t
+
+            async def close(self):
+                self._closed = True
+
+        transcripts = [Transcript(t_start=0.1, t_end=0.5, text="테스트", is_final=True)]
+        fake_stt = _BarrierSTT(transcripts)
+
+        ws_holder: list = []
+        original_accept = WebSocket.accept
+
+        async def capturing_accept(self_ws, *args, **kwargs):
+            result = await original_accept(self_ws, *args, **kwargs)
+            ws_holder.append(self_ws)
+            return result
+
+        class _DisconnectEngine:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_):
+                pass
+
+            async def identify_phrase(self, pcm_slice):
+                # identify_phrase 내에서 disconnect 시뮬레이션 (pcm_loop 는 이미 종료)
+                if ws_holder:
+                    ws_holder[0].client_state = WebSocketState.DISCONNECTED
+                return "auto:A"
+
+        client = TestClient(app, raise_server_exceptions=False)
+        received: list[dict] = []
+        with (
+            patch.object(_demo_mod, "ElevenLabsSTT", return_value=fake_stt),
+            patch.object(_demo_mod, "SpeakerEngine", return_value=_DisconnectEngine()),
+            patch.object(WebSocket, "accept", capturing_accept),
+        ):
+            try:
+                with client.websocket_connect("/audio/test-guard-label") as wsc:
+                    wsc.send_bytes(_sin_pcm())
+                    wsc.send_text(json.dumps({"type": "eof"}))
+                    received = _collect(wsc, max_iter=50)
+            except Exception:
+                pass
+
+        assert not any(m.get("type") == "labeled_phrase" for m in received), (
+            "guard 실패: labeled_phrase 가 DISCONNECTED 상태에서 전송됨"
+        )
+        assert not any(m.get("type") == "final_grouped" for m in received), (
+            "guard 실패: final_grouped 가 DISCONNECTED 상태에서 전송됨"
         )
