@@ -52,6 +52,7 @@ _stt_logger = logging.getLogger("server.stt")
 _stt_logger.setLevel(logging.DEBUG)
 
 _SENTENCE_END_CHARS = (".", "?", "!", "…")
+_SILENCE_GAP_S = 0.3  # word 사이 silence threshold (admin smoke v5 gap 분포 기반)
 
 app = FastAPI(title="speaker_engine WS demo")
 
@@ -153,18 +154,42 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
         async def _flush_phrase() -> None:
             if not phrase_words:
                 return
-            # 구두점 종결 부호 기반 sub-group 분할 (PLAN-006-T-022)
+            # sub-split: 구두점 OR silence gap OR 결합 (PLAN-006-T-023)
             sub_groups: list[list[Transcript]] = []
             current: list[Transcript] = []
-            for w in phrase_words:
+            has_sentence_split = False
+            has_silence_split = False
+
+            for i, w in enumerate(phrase_words):
                 current.append(w)
+
+                # 신호 1: 구두점 종결
                 if w.text.rstrip().endswith(_SENTENCE_END_CHARS):
                     sub_groups.append(current)
                     current = []
+                    has_sentence_split = True
+                    continue
+
+                # 신호 2: 다음 단어와의 silence gap
+                if i + 1 < len(phrase_words):
+                    next_w = phrase_words[i + 1]
+                    if next_w.t_start - w.t_end > _SILENCE_GAP_S:
+                        sub_groups.append(current)
+                        current = []
+                        has_silence_split = True
+
             if current:
                 sub_groups.append(current)
 
-            sentence_split = len(sub_groups) > 1
+            if has_sentence_split and has_silence_split:
+                split_reason = "both"
+            elif has_sentence_split:
+                split_reason = "sentence"
+            elif has_silence_split:
+                split_reason = "silence"
+            else:
+                split_reason = "none"
+
             for group in sub_groups:
                 t_start = group[0].t_start
                 t_end = group[-1].t_end
@@ -179,9 +204,9 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
                 }
                 phrase_log.append(entry)
                 logger.info(
-                    "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB sentence_split=%s text=%r",
+                    "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB split_reason=%s text=%r",
                     t_start, t_end, t_end - t_start, label, len(group),
-                    len(pcm_slice), sentence_split, text[:60],
+                    len(pcm_slice), split_reason, text[:60],
                 )
                 if ws.client_state == WebSocketState.CONNECTED:
                     await ws.send_json({"type": "labeled_phrase", **entry})

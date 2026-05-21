@@ -550,3 +550,79 @@ class TestEngineStreamFanout:
         assert len(segment_events) == 0, (
             f"engine.stream segment 가 UI 로 emit됨 — labeled_phrase SSOT 위반: {segment_events}"
         )
+
+
+class TestSilenceSplit:
+    """silence gap OR 구두점 OR 결합 sub-split 검증 (PLAN-006-T-023 DoD)."""
+
+    def _run(
+        self,
+        transcripts: list[Transcript],
+        label: str = "auto:A",
+    ) -> tuple[list[dict], "_FakeEngine"]:
+        client, demo_mod = _get_app()
+        fake_stt = _FakeSTT(transcripts)
+        fake_engine = _FakeEngine(label)
+
+        with (
+            patch.object(demo_mod, "ElevenLabsSTT", return_value=fake_stt),
+            patch.object(demo_mod, "SpeakerEngine", return_value=fake_engine),
+        ):
+            with client.websocket_connect("/audio/test-silence-split") as wsc:
+                wsc.send_bytes(_sin_pcm())
+                wsc.send_text(json.dumps({"type": "eof"}))
+                received = _collect(wsc)
+
+        return received, fake_engine
+
+    def test_silence_split_at_gap(self):
+        """gap 0.5s > _SILENCE_GAP_S(0.3s), 구두점 없음 → silence split 발생."""
+        transcripts = [
+            Transcript(t_start=0.0, t_end=0.4, text="어", is_final=True),
+            # gap: 0.95 - 0.4 = 0.55s > 0.3s → split boundary
+            Transcript(t_start=0.95, t_end=1.3, text="피지", is_final=True),
+        ]
+        received, engine = self._run(transcripts, label="auto:A")
+        lp = [m for m in received if m["type"] == "labeled_phrase"]
+
+        assert len(lp) == 2, f"silence split: labeled_phrase {len(lp)}개 (2 기대)"
+        assert lp[0]["text"] == "어"
+        assert lp[1]["text"] == "피지"
+        assert len(engine.phrase_calls) == 2
+
+    def test_split_both_signals(self):
+        """구두점 + silence gap 모두 발생 → 각 boundary 에서 split 정상.
+
+        "어"(t_end=0.4) → gap 0.55s > 0.3s → silence split
+        "피지"(t_start=0.95) → no gap, no punct → continue
+        "그래요."(t_end=1.8)   → sentence split
+        결과: ["어"] / ["피지 그래요."] 2 sub-groups, split_reason="both"
+        """
+        transcripts = [
+            Transcript(t_start=0.0, t_end=0.4, text="어", is_final=True),
+            # gap: 0.95 - 0.4 = 0.55s > 0.3s → silence boundary
+            Transcript(t_start=0.95, t_end=1.3, text="피지", is_final=True),
+            # gap: 1.35 - 1.3 = 0.05s < 0.3s, ends with "." → sentence boundary
+            Transcript(t_start=1.35, t_end=1.8, text="그래요.", is_final=True),
+        ]
+        received, engine = self._run(transcripts, label="auto:A")
+        lp = [m for m in received if m["type"] == "labeled_phrase"]
+
+        assert len(lp) == 2, f"both signals: labeled_phrase {len(lp)}개 (2 기대)"
+        assert lp[0]["text"] == "어"
+        assert lp[1]["text"] == "피지 그래요."
+        assert len(engine.phrase_calls) == 2
+
+    def test_no_split_short_gap_no_punct(self):
+        """gap < _SILENCE_GAP_S(0.3s) + 구두점 없음 → split 없이 1개 labeled_phrase."""
+        transcripts = [
+            Transcript(t_start=0.0, t_end=0.3, text="그냥", is_final=True),
+            # gap: 0.5 - 0.3 = 0.2s < 0.3s → split 안 됨
+            Transcript(t_start=0.5, t_end=0.8, text="좋아요", is_final=True),
+        ]
+        received, engine = self._run(transcripts, label="auto:A")
+        lp = [m for m in received if m["type"] == "labeled_phrase"]
+
+        assert len(lp) == 1, f"short gap no punct: labeled_phrase {len(lp)}개 (1 기대)"
+        assert lp[0]["text"] == "그냥 좋아요"
+        assert len(engine.phrase_calls) == 1
