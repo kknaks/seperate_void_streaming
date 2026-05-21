@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 _stt_logger = logging.getLogger("server.stt")
 _stt_logger.setLevel(logging.DEBUG)
 
-_WORD_GAP_SPLIT_S = 0.25  # word gap threshold for phrase sub-split (PLAN-006-T-011, lowered T-018)
+_SENTENCE_END_CHARS = (".", "?", "!", "…")
 
 app = FastAPI(title="speaker_engine WS demo")
 
@@ -153,19 +153,18 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
         async def _flush_phrase() -> None:
             if not phrase_words:
                 return
-            # word gap > threshold 인 곳에서 sub-group 분할
+            # 구두점 종결 부호 기반 sub-group 분할 (PLAN-006-T-022)
             sub_groups: list[list[Transcript]] = []
-            current: list[Transcript] = [phrase_words[0]]
-            for prev, curr in zip(phrase_words, phrase_words[1:]):
-                gap = curr.t_start - prev.t_end
-                if gap > _WORD_GAP_SPLIT_S:
+            current: list[Transcript] = []
+            for w in phrase_words:
+                current.append(w)
+                if w.text.rstrip().endswith(_SENTENCE_END_CHARS):
                     sub_groups.append(current)
-                    current = [curr]
-                else:
-                    current.append(curr)
-            sub_groups.append(current)
+                    current = []
+            if current:
+                sub_groups.append(current)
 
-            gap_split = len(sub_groups) > 1
+            sentence_split = len(sub_groups) > 1
             for group in sub_groups:
                 t_start = group[0].t_start
                 t_end = group[-1].t_end
@@ -180,9 +179,9 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
                 }
                 phrase_log.append(entry)
                 logger.info(
-                    "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB gap_split=%s text=%r",
+                    "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB sentence_split=%s text=%r",
                     t_start, t_end, t_end - t_start, label, len(group),
-                    len(pcm_slice), gap_split, text[:60],
+                    len(pcm_slice), sentence_split, text[:60],
                 )
                 if ws.client_state == WebSocketState.CONNECTED:
                     await ws.send_json({"type": "labeled_phrase", **entry})
