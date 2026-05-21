@@ -466,10 +466,10 @@ class TestWordGapSplit:
         assert len(engine.phrase_calls) == 2
 
     def test_word_gap_no_split_when_below_threshold(self):
-        """word gap 0.2s < 0.4s threshold → split 없이 1개 labeled_phrase."""
+        """word gap 0.2s < 0.25s threshold → split 없이 1개 labeled_phrase."""
         transcripts = [
             Transcript(t_start=0.0, t_end=0.2, text="첫", is_final=True),
-            # gap = 0.4 - 0.2 = 0.2s < 0.4s → no split
+            # gap = 0.4 - 0.2 = 0.2s < 0.25s → no split
             Transcript(t_start=0.4, t_end=0.6, text="번째", is_final=True),
         ]
         received, engine = self._run(transcripts, label="auto:A")
@@ -478,6 +478,21 @@ class TestWordGapSplit:
         assert len(lp) == 1, f"threshold 미달: labeled_phrase {len(lp)}개 (1 기대)"
         assert lp[0]["text"] == "첫 번째"
         assert len(engine.phrase_calls) == 1
+
+    def test_word_gap_split_at_new_threshold(self):
+        """word gap 0.3s > 0.25s threshold → split 발생 (T-018 신규 threshold 검증)."""
+        transcripts = [
+            Transcript(t_start=0.0, t_end=0.2, text="상담사", is_final=True),
+            # gap = 0.5 - 0.2 = 0.3s > 0.25s → split here
+            Transcript(t_start=0.5, t_end=0.7, text="고객", is_final=True),
+        ]
+        received, engine = self._run(transcripts, label="auto:A")
+        lp = [m for m in received if m["type"] == "labeled_phrase"]
+
+        assert len(lp) == 2, f"0.25s threshold split: labeled_phrase {len(lp)}개 (2 기대)"
+        assert lp[0]["text"] == "상담사"
+        assert lp[1]["text"] == "고객"
+        assert len(engine.phrase_calls) == 2
 
 
 class TestEngineStreamFanout:

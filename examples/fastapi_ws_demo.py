@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 _stt_logger = logging.getLogger("server.stt")
 _stt_logger.setLevel(logging.DEBUG)
 
-_WORD_GAP_SPLIT_S = 0.4  # word gap threshold for phrase sub-split (PLAN-006-T-011)
+_WORD_GAP_SPLIT_S = 0.25  # word gap threshold for phrase sub-split (PLAN-006-T-011, lowered T-018)
 
 app = FastAPI(title="speaker_engine WS demo")
 
