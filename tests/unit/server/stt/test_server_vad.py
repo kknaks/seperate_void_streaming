@@ -21,7 +21,7 @@ from server.stt.elevenlabs import ElevenLabsSTT
 # 헬퍼
 # ---------------------------------------------------------------------------
 
-_SINE_AMP = 3000  # webrtcvad aggressiveness=2 에서 speech 로 분류되는 진폭
+_SINE_AMP = 3000  # webrtcvad aggressiveness=3 에서도 speech 로 분류되는 진폭
 
 
 def _silence(ms: int) -> bytes:
@@ -46,9 +46,9 @@ def _speech(ms: int) -> bytes:
 
 
 def test_vad_commit_triggered_after_long_silence():
-    """speech → silence 600ms → on_silence 1회 호출."""
+    """speech → silence 600ms → on_silence 1회 호출 (threshold=250ms)."""
     calls: list[int] = []
-    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=2, silence_ms=500)
+    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=3, silence_ms=250)
 
     vad.feed(_speech(300))
     assert calls == [], "speech 중 on_silence 불가"
@@ -58,9 +58,9 @@ def test_vad_commit_triggered_after_long_silence():
 
 
 def test_vad_no_commit_on_short_silence():
-    """speech → silence 200ms → on_silence 호출 없음 (threshold=500ms 미달)."""
+    """speech → silence 200ms → on_silence 호출 없음 (threshold=250ms 미달)."""
     calls: list[int] = []
-    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=2, silence_ms=500)
+    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=3, silence_ms=250)
 
     vad.feed(_speech(300))
     vad.feed(_silence(200))
@@ -70,7 +70,7 @@ def test_vad_no_commit_on_short_silence():
 def test_vad_no_commit_without_prior_speech():
     """선행 speech 없이 silence 만 입력되면 on_silence 호출 안 됨."""
     calls: list[int] = []
-    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=2, silence_ms=500)
+    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=3, silence_ms=250)
 
     vad.feed(_silence(600))
     assert calls == [], "speech 없이 silence 만 → on_silence 불가"
@@ -79,7 +79,7 @@ def test_vad_no_commit_without_prior_speech():
 def test_vad_multiple_commits():
     """speech → silence → speech → silence → on_silence 2회."""
     calls: list[int] = []
-    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=2, silence_ms=500)
+    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=3, silence_ms=250)
 
     vad.feed(_speech(300))
     vad.feed(_silence(600))
@@ -93,7 +93,7 @@ def test_vad_multiple_commits():
 def test_vad_frame_alignment_unaligned_chunks():
     """불규칙 크기 chunk 를 나눠 넣어도 내부 버퍼가 올바르게 정렬."""
     calls: list[int] = []
-    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=2, silence_ms=500)
+    vad = ServerVAD(on_silence=lambda: calls.append(1), aggressiveness=3, silence_ms=250)
 
     full_speech = _speech(300)
     full_silence = _silence(600)
@@ -146,7 +146,7 @@ class _FakeWS:
 
 def _make_stt_with_vad(
     incoming: list[str],
-    silence_ms: int = 500,
+    silence_ms: int = 250,
 ) -> tuple[ElevenLabsSTT, _FakeWS]:
     fake_ws = _FakeWS(incoming)
 
@@ -160,7 +160,7 @@ def _make_stt_with_vad(
         commit_strategy="manual",
         use_server_vad=True,
         vad_silence_ms=silence_ms,
-        vad_aggressiveness=2,
+        vad_aggressiveness=3,
     )
     stt._connect_patch = patch("websockets.connect", side_effect=_connect)
     return stt, fake_ws
@@ -176,7 +176,7 @@ async def test_server_vad_triggers_commit_message():
 
     # feed() → VAD → put_nowait(_COMMIT_SIGNAL) 모두 동기 경로
     await stt.feed(_speech(300))
-    await stt.feed(_silence(600))  # 600ms > 500ms threshold → VAD fires
+    await stt.feed(_silence(600))  # 600ms > 250ms threshold → VAD fires
     await stt.close()              # 잔여 final commit 용 None 추가
 
     with stt._connect_patch:
@@ -195,7 +195,7 @@ async def test_server_vad_short_silence_no_mid_commit():
     stt, fake_ws = _make_stt_with_vad(incoming=[], silence_ms=500)
 
     await stt.feed(_speech(300))
-    await stt.feed(_silence(200))  # 200ms < 500ms → VAD 미트리거
+    await stt.feed(_silence(200))  # 200ms < 250ms → VAD 미트리거
     await stt.close()              # manual commit 1회만
 
     with stt._connect_patch:

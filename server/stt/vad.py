@@ -26,8 +26,8 @@ class ServerVAD:
     def __init__(
         self,
         on_silence: Callable[[], None],
-        aggressiveness: int = 2,
-        silence_ms: int = 500,
+        aggressiveness: int = 3,
+        silence_ms: int = 250,
     ) -> None:
         try:
             import webrtcvad as _wvad

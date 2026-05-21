@@ -62,8 +62,8 @@ class ElevenLabsSTT:
         vad_silence_threshold_secs: float = 1.5,
         vad_threshold: float = 0.4,
         use_server_vad: bool = True,
-        vad_silence_ms: int = 500,
-        vad_aggressiveness: int = 2,
+        vad_silence_ms: int = 250,
+        vad_aggressiveness: int = 3,
     ) -> None:
         resolved_key = api_key or os.environ.get("ELEVENLABS_API_KEY")
         if not resolved_key:
