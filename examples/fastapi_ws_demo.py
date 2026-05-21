@@ -30,6 +30,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from dataclasses import dataclass
 from typing import AsyncIterator
 
 try:
@@ -43,7 +44,7 @@ except ImportError as e:  # pragma: no cover
 
 from server.audio.ringbuffer import PcmRingBuffer
 from server.stt import ElevenLabsSTT, Transcript
-from speaker_engine import SpeakerEngine
+from speaker_engine import SpeakerEngine, SpeakerSegment
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -53,6 +54,33 @@ _stt_logger.setLevel(logging.DEBUG)
 
 _SENTENCE_END_CHARS = (".", "?", "!", "…")
 _SILENCE_GAP_S = 0.3  # word 사이 silence threshold (admin smoke v5 gap 분포 기반)
+
+
+@dataclass
+class _SegLabel:
+    t_start: float
+    t_end: float
+    speaker_id: str  # SpeakerSegment.label (예: "auto:A")
+
+
+def _resolve_label_from_segments(
+    phrase_start: float,
+    phrase_end: float,
+    segments: list[_SegLabel],
+) -> str | None:
+    """phrase time window 와 가장 길게 overlap 하는 segment 의 speaker_id 반환.
+
+    overlap 없으면 None → identify_phrase fallback.
+    """
+    overlaps: dict[str, float] = {}
+    for seg in segments:
+        ov = max(0.0, min(phrase_end, seg.t_end) - max(phrase_start, seg.t_start))
+        if ov > 0:
+            overlaps[seg.speaker_id] = overlaps.get(seg.speaker_id, 0.0) + ov
+    if not overlaps:
+        return None
+    return max(overlaps.items(), key=lambda x: x[1])[0]
+
 
 app = FastAPI(title="speaker_engine WS demo")
 
@@ -112,6 +140,7 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
     stt = ElevenLabsSTT(language="ko")
     buf = PcmRingBuffer()
     phrase_log: list[dict] = []  # labeled_phrase 누적 → final_grouped
+    segment_labels: list[_SegLabel] = []  # diart segment 수집 → phrase lookup
 
     pcm_for_engine: asyncio.Queue[bytes | None] = asyncio.Queue()
 
@@ -133,10 +162,15 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
             yield chunk
 
     async def engine_learn_loop() -> None:
-        """engine.stream PCM 흘려서 OnlineSpeakerClusterer 학습 누적. segment yield 소비만, UI emit X."""
+        """engine.stream PCM 흘려서 OnlineSpeakerClusterer 학습 누적. SpeakerSegment 수집 → phrase lookup."""
         logger.debug("engine.stream learning channel started: visit_id=%s", visit_id)
-        async for _segment in engine.stream(engine_iter()):
-            pass
+        async for event in engine.stream(engine_iter()):
+            if isinstance(event, SpeakerSegment):
+                segment_labels.append(_SegLabel(
+                    t_start=event.t_start,
+                    t_end=event.t_end,
+                    speaker_id=event.label,
+                ))
         logger.debug("engine.stream learning channel finished: visit_id=%s", visit_id)
 
     async def stt_loop() -> None:
@@ -194,8 +228,15 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
                 t_start = group[0].t_start
                 t_end = group[-1].t_end
                 text = " ".join(w.text for w in group)
-                pcm_slice = buf.slice(t_start, t_end)
-                label = await engine.identify_phrase(pcm_slice)
+                # diart segment lookup 우선, 미도착 시 identify_phrase fallback
+                diart_label = _resolve_label_from_segments(t_start, t_end, segment_labels)
+                if diart_label is not None:
+                    label = diart_label
+                    pcm_slice_len = 0
+                else:
+                    pcm_slice = buf.slice(t_start, t_end)
+                    label = await engine.identify_phrase(pcm_slice)
+                    pcm_slice_len = len(pcm_slice)
                 entry: dict = {
                     "label": label,
                     "t_start": t_start,
@@ -206,7 +247,7 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
                 logger.info(
                     "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB split_reason=%s text=%r",
                     t_start, t_end, t_end - t_start, label, len(group),
-                    len(pcm_slice), split_reason, text[:60],
+                    pcm_slice_len, split_reason, text[:60],
                 )
                 if ws.client_state == WebSocketState.CONNECTED:
                     await ws.send_json({"type": "labeled_phrase", **entry})

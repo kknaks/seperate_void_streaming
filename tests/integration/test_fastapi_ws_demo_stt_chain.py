@@ -552,6 +552,42 @@ class TestEngineStreamFanout:
         )
 
 
+class TestSegmentLabelLookup:
+    """diart segment lookup 헬퍼 단위 테스트 (PLAN-006-T-025 DoD)."""
+
+    def test_segment_label_lookup_basic(self):
+        """phrase time window 가 segment 와 겹치면 그 라벨 반환."""
+        try:
+            from examples.fastapi_ws_demo import _SegLabel, _resolve_label_from_segments
+        except ImportError as exc:
+            pytest.skip(f"fastapi_ws_demo import 실패: {exc}")
+        segs = [_SegLabel(t_start=0.0, t_end=1.0, speaker_id="auto:A")]
+        result = _resolve_label_from_segments(0.2, 0.8, segs)
+        assert result == "auto:A"
+
+    def test_segment_label_overlap_dominant(self):
+        """다중 segment overlap 시 가장 긴 overlap 의 라벨 선택."""
+        try:
+            from examples.fastapi_ws_demo import _SegLabel, _resolve_label_from_segments
+        except ImportError as exc:
+            pytest.skip(f"fastapi_ws_demo import 실패: {exc}")
+        segs = [
+            _SegLabel(t_start=0.0, t_end=0.3, speaker_id="auto:A"),  # [0.1, 0.3] → 0.2s
+            _SegLabel(t_start=0.3, t_end=0.8, speaker_id="auto:B"),  # [0.3, 0.8] → 0.5s
+        ]
+        result = _resolve_label_from_segments(0.1, 0.8, segs)
+        assert result == "auto:B"
+
+    def test_segment_label_fallback_when_empty(self):
+        """segment 없으면 None 반환 → identify_phrase fallback."""
+        try:
+            from examples.fastapi_ws_demo import _resolve_label_from_segments
+        except ImportError as exc:
+            pytest.skip(f"fastapi_ws_demo import 실패: {exc}")
+        result = _resolve_label_from_segments(0.0, 1.0, [])
+        assert result is None
+
+
 class TestSilenceSplit:
     """silence gap OR 구두점 OR 결합 sub-split 검증 (PLAN-006-T-023 DoD)."""
 
