@@ -1,4 +1,15 @@
-"""fastapi_ws_demo.py — FastAPI WebSocket + Pattern B fanout + ElevenLabsSTT (spec-07 §3).
+"""fastapi_ws_demo.py — FastAPI WebSocket + STT-driven Sequential Chain (adr-10, PLAN-006).
+
+이전 Pattern B fanout (PLAN-005 / adr-02) 을 폐기하고
+STT phrase boundary SSOT 기반 Sequential Chain 으로 재작성.
+
+흐름:
+  PCM → buf.append + stt.feed (동시)
+    ↓
+  stt.stream() partial  → ws stt 이벤트
+  stt.stream() final    → phrase 단어 누적 → partial 도착 또는 스트림 종료 시 flush
+    → buf.slice(t_start, t_end) → engine.identify_phrase → labeled_phrase 이벤트
+  세션 종료: final_grouped + done
 
 설치 (examples 전용 — 코어 의존성 아님):
     pip install fastapi uvicorn websockets
@@ -29,56 +40,13 @@ except ImportError as e:  # pragma: no cover
         "fastapi 가 설치되지 않았습니다. 'pip install fastapi uvicorn' 을 실행하세요."
     ) from e
 
+from server.audio.ringbuffer import PcmRingBuffer
 from server.stt import ElevenLabsSTT, Transcript
-from speaker_engine import (
-    LabelChange,
-    SpeakerEngine,
-    SpeakerSegment,
-)
+from speaker_engine import SpeakerEngine
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="speaker_engine WS demo")
-
-
-def _build_final_utterances(
-    word_log: list[dict], label_changes: list[LabelChange]
-) -> list[dict]:
-    """finalize 후 canonical 라벨 기준 utterance 단위 재구성 (adr-09, spec-07 §3).
-
-    정책:
-    - LabelChange.affected_utterance_ids 를 segment_id → new_label 매핑으로 적용.
-    - 미매핑 단어(segment_id 없거나 label 없음)는 final_grouped 에서 제외.
-    - 시간순 정렬 후 같은 label 연속이면 한 utterance 로 병합.
-    """
-    id_to_label: dict[str, str] = {}
-    for ch in label_changes:
-        for uid in ch.affected_utterance_ids:
-            id_to_label[uid] = ch.new_label
-
-    words: list[dict] = []
-    for w in word_log:
-        label = id_to_label.get(w.get("segment_id", ""), w.get("label"))
-        if not label:
-            continue
-        words.append({**w, "label": label})
-
-    words.sort(key=lambda w: w["t_start"])
-    utterances: list[dict] = []
-    for w in words:
-        if utterances and utterances[-1]["label"] == w["label"]:
-            utterances[-1]["text"] += " " + w["text"]
-            utterances[-1]["t_end"] = max(utterances[-1]["t_end"], w["t_end"])
-        else:
-            utterances.append(
-                {
-                    "label": w["label"],
-                    "t_start": w["t_start"],
-                    "t_end": w["t_end"],
-                    "text": w["text"],
-                }
-            )
-    return utterances
 
 
 async def _pcm_stream(ws: WebSocket) -> AsyncIterator[bytes]:
@@ -109,6 +77,24 @@ async def _pcm_stream(ws: WebSocket) -> AsyncIterator[bytes]:
                 pass
 
 
+def _merge_consecutive_phrases(phrases: list[dict]) -> list[dict]:
+    """동일 label 연속 phrase 를 하나로 병합 (final_grouped 재구성).
+
+    t_start 오름차순 정렬 후 label 연속 병합.
+    """
+    if not phrases:
+        return []
+    sorted_phrases = sorted(phrases, key=lambda p: p["t_start"])
+    result: list[dict] = []
+    for p in sorted_phrases:
+        if result and result[-1]["label"] == p["label"]:
+            result[-1]["text"] += " " + p["text"]
+            result[-1]["t_end"] = max(result[-1]["t_end"], p["t_end"])
+        else:
+            result.append(dict(p))
+    return result
+
+
 @app.websocket("/audio/{visit_id}")
 async def audio_ws(ws: WebSocket, visit_id: str) -> None:
     await ws.accept()
@@ -116,152 +102,85 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
 
     engine = SpeakerEngine()
     stt = ElevenLabsSTT(language="ko")
+    buf = PcmRingBuffer()
+    phrase_log: list[dict] = []  # labeled_phrase 누적 → final_grouped
 
-    # ── live grouping state (adr-09, Pattern B 유지) ──
-    pending_words: list[dict] = []       # segment 미도착 단어 버퍼
-    segments_emitted: list[dict] = []    # 시간 매칭용 segment 히스토리
-    word_log: list[dict] = []            # final_grouped 재구성용 단어 누적
-    label_changes_applied: list[LabelChange] = []  # finalize 후 라벨 보정용
+    async def pcm_loop() -> None:
+        """PCM 수신 → ringbuffer 누적 + STT feed. PCM 소진 후 stt.close()."""
+        async for pcm in _pcm_stream(ws):
+            buf.append(pcm)
+            await stt.feed(pcm)
+        await stt.close()
 
-    def _find_covering_segment(word: dict) -> dict | None:
-        """word.t_start 를 커버하는 가장 최근 segment 반환.
+    async def stt_loop() -> None:
+        """STT 스트림 처리 — phrase 단위 identify_phrase → labeled_phrase.
 
-        매칭 정책: contain — seg.t_start ≤ word.t_start ≤ seg.t_end.
-        다중 매칭 시 가장 최근 segment 우선 (engine sliding window 특성상 최신이 더 정확).
+        phrase 경계 감지 정책:
+          - is_final=True Transcript 를 phrase_words 에 누적
+          - is_final=False (partial) 도착 시 직전 phrase_words flush
+          - 스트림 종료 시 잔여 phrase_words flush
+        ElevenLabs VAD 에서 한 committed_transcript_with_timestamps 의 모든
+        단어는 next partial 이전에 도착하므로 이 정책이 phrase 경계를 정확히 포착.
         """
-        t = word["t_start"]
-        for seg in reversed(segments_emitted):
-            if seg["t_start"] <= t <= seg["t_end"]:
-                return seg
-        return None
+        phrase_words: list[Transcript] = []
 
-    async def _emit_labeled_word(word: dict, seg: dict) -> None:
-        entry = {
-            "label": seg["label"],
-            "t_start": word["t_start"],
-            "t_end": word["t_end"],
-            "text": word["text"],
-            "segment_id": seg["segment_id"],
-        }
-        word_log.append(entry)
-        await ws.send_json({"type": "labeled_word", **entry})
+        async def _flush_phrase() -> None:
+            if not phrase_words:
+                return
+            t_start = phrase_words[0].t_start
+            t_end = phrase_words[-1].t_end
+            text = " ".join(w.text for w in phrase_words)
+            pcm_slice = buf.slice(t_start, t_end)
+            label = await engine.identify_phrase(pcm_slice)
+            entry: dict = {
+                "label": label,
+                "t_start": t_start,
+                "t_end": t_end,
+                "text": text,
+            }
+            phrase_log.append(entry)
+            await ws.send_json({"type": "labeled_phrase", **entry})
+            phrase_words.clear()
 
-    async def attribute_word(word: dict) -> None:
-        """final word 의 covering segment 를 찾아 labeled_word emit. 없으면 pending."""
-        seg = _find_covering_segment(word)
-        if seg is not None:
-            await _emit_labeled_word(word, seg)
-        else:
-            pending_words.append(word)
-
-    async def flush_pending_for(seg: dict) -> None:
-        """새 segment 도착 후 pending_words 중 해당 segment 구간 단어 처리."""
-        still_pending: list[dict] = []
-        for word in pending_words:
-            if seg["t_start"] <= word["t_start"] <= seg["t_end"]:
-                await _emit_labeled_word(word, seg)
-            else:
-                still_pending.append(word)
-        pending_words.clear()
-        pending_words.extend(still_pending)
-
-    async def tee() -> AsyncIterator[bytes]:
-        """PCM 청크를 STT 와 엔진 양쪽에 fan-out (Pattern B, adr-02)."""
-        async for chunk in _pcm_stream(ws):
-            asyncio.create_task(stt.feed(chunk))
-            yield chunk
-
-    async def forward_stt_stream() -> None:
-        """STT 채널 — Transcript 이벤트를 stt 타입 JSON 으로 push (spec-07 §3).
-
-        is_final=True 단어만 live grouping 대상 (partial 은 timestamps 없음).
-        """
-        async for t in stt.stream():
+        async for transcript in stt.stream():
             await ws.send_json(
                 {
                     "type": "stt",
-                    "t_start": t.t_start,
-                    "t_end": t.t_end,
-                    "text": t.text,
-                    "is_final": t.is_final,
+                    "t_start": transcript.t_start,
+                    "t_end": transcript.t_end,
+                    "text": transcript.text,
+                    "is_final": transcript.is_final,
                 }
             )
-            if t.is_final:
-                await attribute_word(
-                    {"t_start": t.t_start, "t_end": t.t_end, "text": t.text}
-                )
 
-    async def engine_channel() -> list:
-        """Engine 채널 — SpeakerSegment/LabelChange 처리 후 stt.close() + finalize."""
-        async for event in engine.stream(tee()):
-            if isinstance(event, SpeakerSegment):
-                seg = {
-                    "segment_id": event.utterance_id,
-                    "label": event.label,
-                    "t_start": event.t_start,
-                    "t_end": event.t_end,
-                }
-                segments_emitted.append(seg)
-                await ws.send_json(
-                    {
-                        "type": "segment",
-                        "utterance_id": event.utterance_id,
-                        "label": event.label,
-                        "t_start": event.t_start,
-                        "t_end": event.t_end,
-                        "confidence": event.confidence,
-                    }
-                )
-                await flush_pending_for(seg)
-            elif isinstance(event, LabelChange):
-                label_changes_applied.append(event)
-                await ws.send_json(
-                    {
-                        "type": "relabel",
-                        "old_label": event.old_label,
-                        "new_label": event.new_label,
-                        "reason": event.reason,
-                        "affected_count": len(event.affected_utterance_ids),
-                        "affected_utterance_ids": event.affected_utterance_ids,
-                    }
-                )
-        # PCM 소진 → STT commit 시그널 → forward_stt_stream 이 drain 후 종료
-        await stt.close()
-        return await engine.finalize()
+            if not transcript.is_final:
+                # partial 도착 = 직전 phrase 경계 → flush
+                await _flush_phrase()
+                continue
+
+            # committed_transcript (타임스탬프 없음) 은 slice 불가 → skip
+            if transcript.t_start == 0.0 and transcript.t_end == 0.0:
+                continue
+
+            phrase_words.append(transcript)
+
+        # 스트림 종료 → 잔여 flush
+        await _flush_phrase()
 
     try:
         async with engine:
-            candidates, _ = await asyncio.gather(
-                engine_channel(),
-                forward_stt_stream(),
-            )
+            await asyncio.gather(pcm_loop(), stt_loop())
 
-            # ── finalize 후 final_grouped 재구성 (done 직전, spec-07 §3) ──
-            final_utterances = _build_final_utterances(word_log, label_changes_applied)
+            final_utterances = _merge_consecutive_phrases(phrase_log)
             await ws.send_json({"type": "final_grouped", "utterances": final_utterances})
-
-            await ws.send_json(
-                {
-                    "type": "done",
-                    "visit_id": visit_id,
-                    "speaker_count": len(candidates),
-                    "candidates": [
-                        {
-                            "auto_id": c.auto_id,
-                            "utterance_count": c.utterance_count,
-                            "total_duration": c.total_duration,
-                        }
-                        for c in candidates
-                    ],
-                }
-            )
+            await ws.send_json({"type": "done", "visit_id": visit_id})
 
     except WebSocketDisconnect:
         logger.info("WS disconnected: visit_id=%s", visit_id)
-    except Exception as exc:
+    except Exception:
         logger.exception("WS error: visit_id=%s", visit_id)
         try:
-            await ws.send_json({"type": "error", "message": str(exc)})
+            await ws.send_json({"type": "error", "message": "Internal server error"})
         except Exception:
             pass
     finally:
