@@ -112,12 +112,31 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
     buf = PcmRingBuffer()
     phrase_log: list[dict] = []  # labeled_phrase 누적 → final_grouped
 
+    pcm_for_engine: asyncio.Queue[bytes | None] = asyncio.Queue()
+
     async def pcm_loop() -> None:
-        """PCM 수신 → ringbuffer 누적 + STT feed. PCM 소진 후 stt.close()."""
+        """PCM 수신 → ringbuffer 누적 + STT feed + engine 학습 채널 fan-out."""
         async for pcm in _pcm_stream(ws):
             buf.append(pcm)
             await stt.feed(pcm)
+            await pcm_for_engine.put(pcm)
         await stt.close()
+        await pcm_for_engine.put(None)  # sentinel → engine_iter 종료
+
+    async def engine_iter():
+        """engine.stream 용 PCM async iterator — 학습 채널."""
+        while True:
+            chunk = await pcm_for_engine.get()
+            if chunk is None:
+                break
+            yield chunk
+
+    async def engine_learn_loop() -> None:
+        """engine.stream PCM 흘려서 OnlineSpeakerClusterer 학습 누적. segment yield 소비만, UI emit X."""
+        logger.debug("engine.stream learning channel started: visit_id=%s", visit_id)
+        async for _segment in engine.stream(engine_iter()):
+            pass
+        logger.debug("engine.stream learning channel finished: visit_id=%s", visit_id)
 
     async def stt_loop() -> None:
         """STT 스트림 처리 — phrase 단위 identify_phrase → labeled_phrase.
@@ -199,7 +218,7 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
 
     try:
         async with engine:
-            await asyncio.gather(pcm_loop(), stt_loop())
+            await asyncio.gather(pcm_loop(), engine_learn_loop(), stt_loop())
 
             if ws.client_state == WebSocketState.CONNECTED:
                 final_utterances = _merge_consecutive_phrases(phrase_log)

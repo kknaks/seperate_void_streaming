@@ -58,12 +58,20 @@ class _FakeEngine:
     def __init__(self, label: str = "auto:A") -> None:
         self._label = label
         self.phrase_calls: list[bytes] = []
+        self.stream_pcm_chunks: list[bytes] = []
 
     async def __aenter__(self) -> "_FakeEngine":
         return self
 
     async def __aexit__(self, *_: object) -> None:
         pass
+
+    async def stream(self, source: AsyncIterator[bytes]):
+        """학습 채널 mock — PCM 소비 + 기록, segment yield 없음."""
+        async for chunk in source:
+            self.stream_pcm_chunks.append(chunk)
+        return
+        yield  # make this an async generator
 
     async def identify_phrase(self, pcm_slice: bytes) -> str:
         self.phrase_calls.append(pcm_slice)
@@ -378,6 +386,12 @@ class TestWsStateGuard:
             async def __aexit__(self, *_):
                 pass
 
+            async def stream(self, source: AsyncIterator[bytes]):
+                async for _ in source:
+                    pass
+                return
+                yield  # make this an async generator
+
             async def identify_phrase(self, pcm_slice):
                 # identify_phrase 내에서 disconnect 시뮬레이션 (pcm_loop 는 이미 종료)
                 if ws_holder:
@@ -464,3 +478,66 @@ class TestWordGapSplit:
         assert len(lp) == 1, f"threshold 미달: labeled_phrase {len(lp)}개 (1 기대)"
         assert lp[0]["text"] == "첫 번째"
         assert len(engine.phrase_calls) == 1
+
+
+class TestEngineStreamFanout:
+    """engine.stream PCM fan-out 검증 (PLAN-006-T-014 DoD)."""
+
+    def _run(
+        self,
+        transcripts: list[Transcript],
+        label: str = "auto:A",
+    ) -> tuple[list[dict], "_FakeEngine"]:
+        client, demo_mod = _get_app()
+        fake_stt = _FakeSTT(transcripts)
+        fake_engine = _FakeEngine(label)
+
+        with (
+            patch.object(demo_mod, "ElevenLabsSTT", return_value=fake_stt),
+            patch.object(demo_mod, "SpeakerEngine", return_value=fake_engine),
+        ):
+            with client.websocket_connect("/audio/test-fanout") as wsc:
+                wsc.send_bytes(_sin_pcm())
+                wsc.send_text(json.dumps({"type": "eof"}))
+                received = _collect(wsc)
+
+        return received, fake_engine
+
+    def test_engine_stream_pcm_fanout(self):
+        """engine.stream() async iterator 가 호출되어 PCM chunks 를 받았는지 확인."""
+        transcripts = [
+            Transcript(t_start=0.1, t_end=0.5, text="테스트", is_final=True),
+        ]
+        received, engine = self._run(transcripts)
+
+        assert len(engine.stream_pcm_chunks) > 0, (
+            "engine.stream() 에 PCM 미전달 — fan-out 채널이 끊겨 있음"
+        )
+        assert any(m["type"] == "done" for m in received), "done 이벤트 미수신"
+
+    def test_engine_stream_yield_ignored(self):
+        """engine.stream yield 가 ws.send_json 으로 emit 안 됨."""
+        class _YieldingEngine(_FakeEngine):
+            async def stream(self, source: AsyncIterator[bytes]):
+                async for chunk in source:
+                    self.stream_pcm_chunks.append(chunk)
+                yield {"type": "segment", "label": "auto:A", "t_start": 0.0, "t_end": 0.5}
+
+        client, demo_mod = _get_app()
+        fake_stt = _FakeSTT([Transcript(t_start=0.1, t_end=0.5, text="테스트", is_final=True)])
+        yield_engine = _YieldingEngine()
+
+        with (
+            patch.object(demo_mod, "ElevenLabsSTT", return_value=fake_stt),
+            patch.object(demo_mod, "SpeakerEngine", return_value=yield_engine),
+        ):
+            with client.websocket_connect("/audio/test-yield-ignored") as wsc:
+                wsc.send_bytes(_sin_pcm())
+                wsc.send_text(json.dumps({"type": "eof"}))
+                received = _collect(wsc)
+
+        assert len(yield_engine.stream_pcm_chunks) > 0, "stream() 가 PCM 을 수신하지 않음"
+        segment_events = [m for m in received if m.get("type") == "segment"]
+        assert len(segment_events) == 0, (
+            f"engine.stream segment 가 UI 로 emit됨 — labeled_phrase SSOT 위반: {segment_events}"
+        )
