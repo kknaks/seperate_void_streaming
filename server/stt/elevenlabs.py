@@ -3,13 +3,15 @@
 인터페이스:
     async def feed(self, chunk: bytes) -> None
     async def stream(self) -> AsyncIterator[Transcript]
+    async def commit(self) -> None          # server VAD 또는 외부 수동 commit
     async def close(self) -> None
 
 WS 재연결 정책: fail-fast (§OQ-06-2 항목 1 결정).
 partial/final 노출: 둘 다 emit (§OQ-06-2 항목 2 결정).
-commit_strategy: "vad" (기본, PLAN-006-T-003) 또는 "manual".
-  vad — ElevenLabs 자동 silence 감지 + phrase 자동 commit (adr-10 STT-driven Chain).
-  manual — close() 시 명시 commit 신호 전송 (레거시).
+commit_strategy: "manual" (기본, PLAN-006-T-007) 또는 "vad" (legacy).
+  manual — server VAD (use_server_vad=True) 또는 외부 commit() 호출로 phrase commit.
+           close() 시 잔여 음성 최종 commit.
+  vad   — ElevenLabs 자동 silence 감지 (legacy; 한국어 회의에서 11s+ 지연 확인됨).
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 _WS_URL = "wss://api.elevenlabs.io/v1/speech-to-text/realtime"
 _COMMIT_TIMEOUT_S = 10.0
+_COMMIT_SIGNAL = object()  # send_queue 내 commit 트리거 센티넬
 
 
 @dataclass
@@ -43,9 +46,11 @@ class ElevenLabsSTT:
     stream() 은 별도 태스크에서 async for 로 소비.
 
     commit_strategy:
-        "vad" (기본) — ElevenLabs 자동 silence 감지 → phrase auto-commit.
+        "manual" (기본, PLAN-006-T-007) — server VAD (use_server_vad=True) 가
+            silence 감지 시 자동 commit 트리거. close() 시 잔여 최종 commit.
+            use_server_vad=False 시 외부에서 commit() 직접 호출.
+        "vad" (legacy) — ElevenLabs 자동 silence 감지 → phrase auto-commit.
             close() 시 WS close 로 종료 신호 전달.
-        "manual" — close() 시 commit=True 메시지 전송 (레거시).
     """
 
     def __init__(
@@ -53,9 +58,12 @@ class ElevenLabsSTT:
         api_key: str | None = None,
         language: str = "ko",
         include_timestamps: bool = True,
-        commit_strategy: str = "vad",
+        commit_strategy: str = "manual",
         vad_silence_threshold_secs: float = 1.5,
         vad_threshold: float = 0.4,
+        use_server_vad: bool = True,
+        vad_silence_ms: int = 500,
+        vad_aggressiveness: int = 2,
     ) -> None:
         resolved_key = api_key or os.environ.get("ELEVENLABS_API_KEY")
         if not resolved_key:
@@ -68,11 +76,27 @@ class ElevenLabsSTT:
         self._commit_strategy = commit_strategy
         self._vad_silence_threshold_secs = vad_silence_threshold_secs
         self._vad_threshold = vad_threshold
-        self._send_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
+        self._send_queue: asyncio.Queue[bytes | None | object] = asyncio.Queue()
+
+        # server VAD — manual 모드에서만 활성화
+        self._server_vad = None
+        if use_server_vad and commit_strategy == "manual":
+            from server.stt.vad import ServerVAD
+            self._server_vad = ServerVAD(
+                on_silence=lambda: self._send_queue.put_nowait(_COMMIT_SIGNAL),
+                aggressiveness=vad_aggressiveness,
+                silence_ms=vad_silence_ms,
+            )
 
     async def feed(self, chunk: bytes) -> None:
         """PCM16 bytes 를 내부 큐에 적재. stream() 의 sender task 가 WS 로 전송."""
         await self._send_queue.put(chunk)
+        if self._server_vad is not None:
+            self._server_vad.feed(chunk)
+
+    async def commit(self) -> None:
+        """명시적 commit 트리거 — server VAD 또는 외부 수동 호출 (manual 모드 전용)."""
+        await self._send_queue.put(_COMMIT_SIGNAL)
 
     async def stream(self) -> AsyncIterator[Transcript]:
         """ElevenLabs WS 에 연결 후 Transcript 를 yield.
@@ -128,12 +152,26 @@ class ElevenLabsSTT:
     async def _run_sender(self, ws: object) -> None:
         """큐에서 청크를 꺼내 WS 로 전송.
 
+        _COMMIT_SIGNAL: server VAD 또는 commit() 외부 호출 → commit 메시지 전송.
         None 수신 시:
-          manual: commit=True 메시지 전송 후 종료.
-          vad: WS close() 호출 후 종료 (auto-commit 이므로 명시 commit 불필요).
+          manual: commit=True 메시지 전송 후 종료 (잔여 최종 commit).
+          vad: WS close() 호출 후 종료.
         """
         while True:
             chunk = await self._send_queue.get()
+            if chunk is _COMMIT_SIGNAL:
+                await ws.send(  # type: ignore[attr-defined]
+                    json.dumps(
+                        {
+                            "message_type": "input_audio_chunk",
+                            "audio_base_64": "",
+                            "commit": True,
+                            "sample_rate": 16000,
+                        }
+                    )
+                )
+                logger.debug("ElevenLabsSTT: commit 전송 (server VAD / 외부)")
+                continue
             if chunk is None:
                 if self._commit_strategy == "manual":
                     await ws.send(  # type: ignore[attr-defined]
@@ -146,7 +184,7 @@ class ElevenLabsSTT:
                             }
                         )
                     )
-                    logger.debug("ElevenLabsSTT: commit 전송 (manual)")
+                    logger.debug("ElevenLabsSTT: commit 전송 (close/manual)")
                 else:
                     logger.debug("ElevenLabsSTT: VAD 모드 종료 — WS close")
                     await ws.close()  # type: ignore[attr-defined]
