@@ -154,6 +154,16 @@
       overflow-wrap: anywhere;
       word-break: break-word;
     }
+    .stt-partial {
+      color: #8b949e;
+      font-style: italic;
+      opacity: 0.7;
+    }
+    .stt-final {
+      color: #c9d1d9;
+      font-style: normal;
+      opacity: 1;
+    }
 
     /* 우-중 매핑 */
     .map-row {
@@ -349,8 +359,7 @@
     /* ---- State ---- */
     let _pcmBlobUrl  = null;    // 16kHz WAV blob URL (audio.src)
     let _ws          = null;
-    let _partialEl   = null;    // 우-상 STT partial DOM node
-    let _finalAccumEl = null;   // 우-상 STT final accumulate DOM node (단어 concat)
+    let _partialEl   = null;    // 우-상 STT 마지막 partial DOM node (null이면 새 row 생성)
     let _audioReady  = false;   // true after resample completes
 
     // Web Audio nodes — created once (createMediaElementSource: 1 call per element)
@@ -519,44 +528,30 @@
     }
 
     function onStt(msg) {
-      const { t_start, text, is_final } = msg;
+      const { text, is_final } = msg;
 
-      // 우-상 STT 자막
-      // partial: timestamps 없는 통째 문장 — _partialEl 단일 줄 갱신
-      // final:   ElevenLabs words[] 단어별 emit — _finalAccumEl 한 줄에 concat,
-      //          partial 줄이 살아있으면 그걸 확정으로 격상 + accum 시작
       if (is_final) {
         if (_partialEl) {
-          // partial → final 격상: partial 텍스트 폐기, 첫 단어부터 새로 누적
+          // 마지막 partial row를 final로 확정 (덮어쓰기)
           _partialEl.textContent = text;
-          _partialEl.style.color = '';
-          _finalAccumEl = _partialEl;
+          _partialEl.className = 'stt-row stt-final';
           _partialEl = null;
-        } else if (_finalAccumEl) {
-          // 후속 final 단어: 마지막 final 줄에 단어 append
-          _finalAccumEl.textContent += ' ' + text;
         } else if (text && text.trim()) {
-          // partial 없이 final 직접 도착 (edge): 새 줄 시작
+          // partial 없이 final 직접 도착 (edge)
           const row = document.createElement('div');
-          row.className = 'stt-row';
+          row.className = 'stt-row stt-final';
           row.textContent = text;
           sttFeed.appendChild(row);
-          _finalAccumEl = row;
         }
-        scrollBot(sttFeed);
       } else {
-        // partial: 새 utterance 시작 — accum 줄 종결, 새 partial buffer
         if (!_partialEl) {
-          _finalAccumEl = null;
           _partialEl = document.createElement('div');
-          _partialEl.className = 'stt-row';
-          _partialEl.style.color = '#8b949e';
+          _partialEl.className = 'stt-row stt-partial';
           sttFeed.appendChild(_partialEl);
         }
         _partialEl.textContent = text;
-        scrollBot(sttFeed);
       }
-
+      scrollBot(sttFeed);
     }
 
     /* labeled_phrase: 우-중 매핑 영역 — 같은 label 연속이면 concat, 다른 label 이면 새 row */
@@ -636,7 +631,6 @@
       mapFeed.innerHTML = '';
       finalFeed.innerHTML = '';
       _partialEl = null;
-      _finalAccumEl = null;
     }
 
     function scrollBot(el) { el.scrollTop = el.scrollHeight; }
