@@ -61,6 +61,8 @@ class SpeakerEngine:
         segmentation_model: str = "pyannote/segmentation-3.0",
         embedding_model: str = "pyannote/embedding",
         device: str | None = None,
+        phrase_short_threshold_s: float = 1.5,
+        phrase_auto_threshold: float = 0.5,
     ) -> None:
         # env 해석 (인자 우선 → env fallback) — EnvironmentError 가능 (F-04)
         config = load_engine_config(storage_url, hf_token)
@@ -109,6 +111,12 @@ class SpeakerEngine:
         self._stored_match_map: dict[str, str] = {}
         # WaveformBuffer 참조 — finalize() 가 flush() 호출 (stream() 이후에도 유지)
         self._buffer: WaveformBuffer | None = None
+        # identify_phrase 전용 state (PLAN-006-T-002, spec-04 §9)
+        self._phrase_short_threshold_s: float = phrase_short_threshold_s
+        self._phrase_auto_threshold: float = phrase_auto_threshold
+        self._last_phrase_label: str | None = None
+        # phrase 경로에서 발급된 auto centroids — (L2-normalized embedding, label)
+        self._phrase_centroids: list[tuple[np.ndarray, str]] = []
 
     # ─────────────────────────────────────────────────────────────────────────
     # async context manager (spec-01 §2-1)
@@ -412,6 +420,99 @@ class SpeakerEngine:
     async def delete_speaker(self, speaker_id: UUID) -> None:
         """SpeakerStore.delete 위임."""
         await self._store.delete(speaker_id)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # identify_phrase (PLAN-006-T-002, spec-04 §9)
+
+    async def identify_phrase(self, pcm_slice: bytes) -> str:
+        """Phrase PCM slice → 화자 라벨 (spec-04 §9-1, adr-10 §Decision).
+
+        - pcm_slice: 16kHz mono PCM bytes (PCM16, 동일 format as engine.stream input)
+        - Returns: "registered:<name>" / "stored:<name>" / "auto:A" / "auto:B" ...
+        - 짧은 phrase (< phrase_short_threshold_s) + 직전 라벨 있음 → 직전 라벨 반환 (Option A)
+        - engine.stream() / finalize() 와 Identifier / _clusterer state 공유.
+        """
+        # ── Option A: 짧은 phrase 단축 경로 ─────────────────────────────────
+        n_samples = len(pcm_slice) // 2  # 16-bit PCM: 2 bytes per sample
+        duration_s = n_samples / 16000.0
+        if duration_s < self._phrase_short_threshold_s and self._last_phrase_label is not None:
+            return self._last_phrase_label
+
+        # ── embedding 추출 (DiartAdapter, clusterer state 변경 없음) ─────────
+        try:
+            raw_emb = await self._diart.embed_pcm(pcm_slice)
+            norm_emb = Identifier.normalize(raw_emb)
+        except ValueError as exc:
+            logger.warning("identify_phrase: embedding 추출 실패 — fallback: %s", exc)
+            if self._last_phrase_label is not None:
+                return self._last_phrase_label
+            label = self._alloc_auto_letter()
+            self._last_phrase_label = label
+            return label
+
+        # ── 3-tier 매칭 (Identifier, spec-04 §4.2) ───────────────────────────
+        label, _ = await self._with_storage_retry(self._identifier.match, norm_emb)
+
+        if not label:
+            # Tier 3: centroid 매칭 → auto 라벨 결정
+            label = self._resolve_auto_label(norm_emb)
+
+        self._last_phrase_label = label
+        return label
+
+    def _resolve_auto_label(self, norm_emb: np.ndarray) -> str:
+        """auto label 결정: 기존 centroid 최근접 매칭 → 없으면 신규 letter 발급.
+
+        stream 경로 centroids (OnlineSpeakerClusterer) 와 phrase 경로 centroids
+        (_phrase_centroids) 를 모두 탐색 (단방향 공유: stream→phrase).
+        """
+        best_label: str | None = None
+        best_sim: float = -2.0
+
+        # 1. online clusterer centroids (stream 경로 공유)
+        centers = self._clusterer.centers
+        if centers is not None:
+            for idx in sorted(self._clusterer.active_centers):
+                c = centers[idx]
+                c_norm = float(np.linalg.norm(c))
+                if c_norm < 1e-9:
+                    continue
+                sim = float(np.dot(c / c_norm, norm_emb))
+                if sim > best_sim:
+                    best_sim = sim
+                    best_label = OnlineSpeakerClusterer.idx_to_letter(idx)
+
+        # 2. phrase 경로 자체 centroids
+        for centroid, lbl in self._phrase_centroids:
+            sim = float(np.dot(centroid, norm_emb))
+            if sim > best_sim:
+                best_sim = sim
+                best_label = lbl
+
+        if best_sim >= self._phrase_auto_threshold and best_label is not None:
+            return best_label
+
+        # 3. 신규 letter 발급 + phrase centroid 등록
+        new_letter = self._alloc_auto_letter()
+        self._phrase_centroids.append((norm_emb.copy(), new_letter))
+        return new_letter
+
+    def _alloc_auto_letter(self) -> str:
+        """미사용 auto letter 중 가장 작은 idx 를 발급 (stream + phrase 통합)."""
+        _LETTERS = "ABCDEFGHIJKLMNOPQRST"
+        used_idxs: set[int] = set()
+        used_idxs.update(self._clusterer.active_centers)
+        for _, lbl in self._phrase_centroids:
+            try:
+                used_idxs.add(OnlineSpeakerClusterer.letter_to_idx(lbl))
+            except ValueError:
+                pass
+        for i in range(20):
+            if i not in used_idxs:
+                return f"auto:{_LETTERS[i]}"
+        raise RuntimeError(
+            "identify_phrase: auto speaker 한도 (20) 초과 — 새 letter 발급 불가"
+        )
 
     # ─────────────────────────────────────────────────────────────────────────
     # 내부 헬퍼

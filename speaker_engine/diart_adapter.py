@@ -377,6 +377,64 @@ class DiartAdapter:
         return events
 
     # ------------------------------------------------------------------
+    async def embed_pcm(self, pcm_slice: bytes) -> np.ndarray:
+        """PCM slice → L2-normalized mean embedding (PLAN-006-T-002, spec-04 §9).
+
+        - Any length accepted; zero-pads to WINDOW_SAMPLES if shorter, truncates if longer.
+        - Does NOT call OnlineSpeakerClustering.identify() — clusterer state unchanged.
+        - Returns L2-normalized 1-D ndarray, shape (D,).
+        - Raises ValueError if no active speaker is detected (zero embedding).
+        """
+        if self._closed:
+            raise RuntimeError("DiartAdapter 가 이미 닫혔습니다.")
+        return await asyncio.to_thread(self._embed_pcm_sync, pcm_slice)
+
+    def _embed_pcm_sync(self, pcm_slice: bytes) -> np.ndarray:
+        import torch  # noqa: PLC0415
+
+        # bytes → float32 waveform
+        samples = np.frombuffer(pcm_slice, dtype=np.int16).astype(np.float32) / 32768.0
+
+        # pad or truncate to WINDOW_SAMPLES
+        if len(samples) < WINDOW_SAMPLES:
+            samples = np.pad(samples, (0, WINDOW_SAMPLES - len(samples)))
+        else:
+            samples = samples[:WINDOW_SAMPLES]
+
+        wav_tensor = torch.from_numpy(samples).unsqueeze(0).unsqueeze(-1)  # (1, T, 1)
+
+        seg_out = self._segmentation(wav_tensor)
+        emb_out = self._embedding(wav_tensor, seg_out)
+
+        # extract ndarray
+        if hasattr(emb_out, "detach"):
+            emb_array = emb_out.detach().cpu().numpy()
+        elif isinstance(emb_out, np.ndarray):
+            emb_array = emb_out
+        else:
+            emb_array = np.array(emb_out)
+
+        if emb_array.ndim == 3:
+            emb_array = emb_array[0]
+        emb_array = emb_array.astype(np.float32)
+
+        # mean across speaker dim; each row L2-normalized first
+        if emb_array.ndim == 2 and emb_array.shape[0] > 0:
+            norms = np.linalg.norm(emb_array, axis=1, keepdims=True)
+            norms = np.where(norms < 1e-9, 1.0, norms)
+            mean_emb = (emb_array / norms).mean(axis=0)
+        elif emb_array.ndim == 1 and emb_array.shape[0] > 0:
+            mean_emb = emb_array
+        else:
+            raise ValueError("embed_pcm: no active speaker detected in slice (empty embedding)")
+
+        # final L2 normalize
+        norm = float(np.linalg.norm(mean_emb))
+        if norm < 1e-9:
+            raise ValueError("embed_pcm: zero embedding — no active speaker in slice")
+        return (mean_emb / norm).astype(np.float32)
+
+    # ------------------------------------------------------------------
     async def close(self) -> None:
         """모델 참조 해제 — GPU 메모리 반환 (spec-03 §2-1)."""
         self._closed = True
