@@ -61,7 +61,7 @@ class SpeakerEngine:
         segmentation_model: str = "pyannote/segmentation-3.0",
         embedding_model: str = "pyannote/embedding",
         device: str | None = None,
-        phrase_short_threshold_s: float = 1.5,
+        phrase_short_threshold_s: float = 0.3,
         phrase_auto_threshold: float = 0.42,
     ) -> None:
         # env 해석 (인자 우선 → env fallback) — EnvironmentError 가능 (F-04)

@@ -194,7 +194,7 @@ class TestIdentifyPhraseDifferentSpeaker:
 
 class TestIdentifyPhraseShortPhrase:
     async def test_short_phrase_returns_previous_label(self):
-        """짧은 phrase (< 1.5s) + 직전 라벨 있음 → 직전 라벨 반환, embed_pcm 호출 없음."""
+        """짧은 phrase (< 0.3s) + 직전 라벨 있음 → 직전 라벨 반환, embed_pcm 호출 없음."""
         engine, mock_diart, _ = make_engine()
         emb = rng_emb(3)
         mock_diart.embed_pcm = AsyncMock(return_value=emb)
@@ -206,8 +206,8 @@ class TestIdentifyPhraseShortPhrase:
 
         embed_call_count_before = mock_diart.embed_pcm.call_count
 
-        # 짧은 phrase (~0.5초) → 직전 라벨 반환
-        short_pcm = make_pcm(0.5)
+        # 짧은 phrase (0.2s < 0.3s threshold) → 직전 라벨 반환
+        short_pcm = make_pcm(0.2)
         label2 = await engine.identify_phrase(short_pcm)
 
         assert label2 == "auto:A"
@@ -215,16 +215,32 @@ class TestIdentifyPhraseShortPhrase:
         assert mock_diart.embed_pcm.call_count == embed_call_count_before
 
     async def test_short_phrase_without_prior_still_identifies(self):
-        """직전 라벨 없는 첫 호출은 짧은 phrase 라도 정식 identify 수행."""
+        """직전 라벨 없는 첫 호출은 0.2s phrase 라도 정식 identify 수행."""
         engine, mock_diart, _ = make_engine()
         emb = rng_emb(7)
         mock_diart.embed_pcm = AsyncMock(return_value=emb)
         engine._store.find_match = AsyncMock(return_value=None)
 
-        label = await engine.identify_phrase(make_pcm(0.5))
+        label = await engine.identify_phrase(make_pcm(0.2))
 
         assert label.startswith("auto:")
         mock_diart.embed_pcm.assert_called_once()
+
+    async def test_phrase_0_5s_now_embeds(self):
+        """0.5s phrase 는 threshold 0.3 기준으로 이제 embedding 추출 (이전 1.5s 에서는 fallback)."""
+        engine, mock_diart, _ = make_engine()
+        emb = rng_emb(11)
+        mock_diart.embed_pcm = AsyncMock(return_value=emb)
+        engine._store.find_match = AsyncMock(return_value=None)
+
+        # 직전 라벨 설정 (2s phrase 먼저)
+        label1 = await engine.identify_phrase(make_pcm(2.0))
+        assert label1 == "auto:A"
+        count_before = mock_diart.embed_pcm.call_count
+
+        # 0.5s > 0.3s threshold → 단축 경로 X, embed_pcm 호출해야 함
+        await engine.identify_phrase(make_pcm(0.5))
+        assert mock_diart.embed_pcm.call_count == count_before + 1
 
 
 # ─────────────────────────────────────────────────────────────────────────────
