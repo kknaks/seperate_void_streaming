@@ -195,7 +195,7 @@ async def test_server_vad_short_silence_no_mid_commit():
     stt, fake_ws = _make_stt_with_vad(incoming=[], silence_ms=500)
 
     await stt.feed(_speech(300))
-    await stt.feed(_silence(200))  # 200ms < 250ms → VAD 미트리거
+    await stt.feed(_silence(200))  # 200ms < 500ms threshold → VAD 미트리거
     await stt.close()              # manual commit 1회만
 
     with stt._connect_patch:

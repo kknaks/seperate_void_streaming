@@ -405,3 +405,62 @@ class TestWsStateGuard:
         assert not any(m.get("type") == "final_grouped" for m in received), (
             "guard 실패: final_grouped 가 DISCONNECTED 상태에서 전송됨"
         )
+
+
+class TestWordGapSplit:
+    """word gap 기반 sub-split 검증 (PLAN-006-T-011 DoD)."""
+
+    def _run(
+        self,
+        transcripts: list[Transcript],
+        label: str = "auto:A",
+    ) -> tuple[list[dict], "_FakeEngine"]:
+        client, demo_mod = _get_app()
+        fake_stt = _FakeSTT(transcripts)
+        fake_engine = _FakeEngine(label)
+
+        with (
+            patch.object(demo_mod, "ElevenLabsSTT", return_value=fake_stt),
+            patch.object(demo_mod, "SpeakerEngine", return_value=fake_engine),
+        ):
+            with client.websocket_connect("/audio/test-gap-split") as wsc:
+                wsc.send_bytes(_sin_pcm())
+                wsc.send_text(json.dumps({"type": "eof"}))
+                received = _collect(wsc)
+
+        return received, fake_engine
+
+    def test_word_gap_split(self):
+        """4단어 mock: 단어 2-3 사이 gap 0.6s > 0.4s → labeled_phrase 2개 emit."""
+        transcripts = [
+            Transcript(t_start=0.0, t_end=0.2, text="첫", is_final=True),
+            Transcript(t_start=0.3, t_end=0.5, text="번째", is_final=True),
+            # gap = 1.1 - 0.5 = 0.6s > 0.4s → split here
+            Transcript(t_start=1.1, t_end=1.3, text="두", is_final=True),
+            Transcript(t_start=1.4, t_end=1.6, text="번째", is_final=True),
+        ]
+        received, engine = self._run(transcripts, label="auto:A")
+        lp = [m for m in received if m["type"] == "labeled_phrase"]
+
+        assert len(lp) == 2, f"gap_split: labeled_phrase {len(lp)}개 (2 기대)"
+        assert lp[0]["text"] == "첫 번째"
+        assert lp[0]["t_start"] == pytest.approx(0.0)
+        assert lp[0]["t_end"] == pytest.approx(0.5)
+        assert lp[1]["text"] == "두 번째"
+        assert lp[1]["t_start"] == pytest.approx(1.1)
+        assert lp[1]["t_end"] == pytest.approx(1.6)
+        assert len(engine.phrase_calls) == 2
+
+    def test_word_gap_no_split_when_below_threshold(self):
+        """word gap 0.2s < 0.4s threshold → split 없이 1개 labeled_phrase."""
+        transcripts = [
+            Transcript(t_start=0.0, t_end=0.2, text="첫", is_final=True),
+            # gap = 0.4 - 0.2 = 0.2s < 0.4s → no split
+            Transcript(t_start=0.4, t_end=0.6, text="번째", is_final=True),
+        ]
+        received, engine = self._run(transcripts, label="auto:A")
+        lp = [m for m in received if m["type"] == "labeled_phrase"]
+
+        assert len(lp) == 1, f"threshold 미달: labeled_phrase {len(lp)}개 (1 기대)"
+        assert lp[0]["text"] == "첫 번째"
+        assert len(engine.phrase_calls) == 1

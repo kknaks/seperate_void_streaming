@@ -45,7 +45,13 @@ from server.audio.ringbuffer import PcmRingBuffer
 from server.stt import ElevenLabsSTT, Transcript
 from speaker_engine import SpeakerEngine
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+# T-006 admin smoke 진단용 — STT raw 흐름 확인. 정식 코드 아님.
+_stt_logger = logging.getLogger("server.stt")
+_stt_logger.setLevel(logging.DEBUG)
+
+_WORD_GAP_SPLIT_S = 0.4  # word gap threshold for phrase sub-split (PLAN-006-T-011)
 
 app = FastAPI(title="speaker_engine WS demo")
 
@@ -128,27 +134,42 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
         async def _flush_phrase() -> None:
             if not phrase_words:
                 return
-            t_start = phrase_words[0].t_start
-            t_end = phrase_words[-1].t_end
-            text = " ".join(w.text for w in phrase_words)
-            pcm_slice = buf.slice(t_start, t_end)
-            label = await engine.identify_phrase(pcm_slice)
-            entry: dict = {
-                "label": label,
-                "t_start": t_start,
-                "t_end": t_end,
-                "text": text,
-            }
-            phrase_log.append(entry)
-            logger.info(
-                "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB text=%r",
-                t_start, t_end, t_end - t_start, label, len(phrase_words),
-                len(pcm_slice), text[:60],
-            )
-            if ws.client_state == WebSocketState.CONNECTED:
-                await ws.send_json({"type": "labeled_phrase", **entry})
-            else:
-                logger.info("WS already disconnected before labeled_phrase: visit_id=%s", visit_id)
+            # word gap > threshold 인 곳에서 sub-group 분할
+            sub_groups: list[list[Transcript]] = []
+            current: list[Transcript] = [phrase_words[0]]
+            for prev, curr in zip(phrase_words, phrase_words[1:]):
+                gap = curr.t_start - prev.t_end
+                if gap > _WORD_GAP_SPLIT_S:
+                    sub_groups.append(current)
+                    current = [curr]
+                else:
+                    current.append(curr)
+            sub_groups.append(current)
+
+            gap_split = len(sub_groups) > 1
+            for group in sub_groups:
+                t_start = group[0].t_start
+                t_end = group[-1].t_end
+                text = " ".join(w.text for w in group)
+                pcm_slice = buf.slice(t_start, t_end)
+                label = await engine.identify_phrase(pcm_slice)
+                entry: dict = {
+                    "label": label,
+                    "t_start": t_start,
+                    "t_end": t_end,
+                    "text": text,
+                }
+                phrase_log.append(entry)
+                logger.info(
+                    "[PHRASE] t=%.2f~%.2f dur=%.2fs label=%s words=%d slice=%dB gap_split=%s text=%r",
+                    t_start, t_end, t_end - t_start, label, len(group),
+                    len(pcm_slice), gap_split, text[:60],
+                )
+                if ws.client_state == WebSocketState.CONNECTED:
+                    await ws.send_json({"type": "labeled_phrase", **entry})
+                else:
+                    logger.info("WS already disconnected before labeled_phrase: visit_id=%s", visit_id)
+
             phrase_words.clear()
 
         async for transcript in stt.stream():
