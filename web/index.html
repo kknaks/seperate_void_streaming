@@ -498,7 +498,7 @@
       }
     });
 
-    /* ---- WS 메시지 핸들러 (T-010 보존) ---- */
+    /* ---- WS 메시지 핸들러 (PLAN-006-T-005) ---- */
     function handleMsg(event) {
       let msg;
       try { msg = JSON.parse(event.data); } catch {
@@ -506,23 +506,16 @@
         return;
       }
       switch (msg.type) {
-        case 'segment':       onSegment(msg);      break;
-        case 'stt':           onStt(msg);          break;
-        case 'labeled_word':  onLabeledWord(msg);  break;
-        case 'final_grouped': onFinalGrouped(msg); break;
-        case 'relabel':       onRelabel(msg);      break;
-        case 'done':          onDone(msg);         break;
+        case 'stt':            onStt(msg);           break;
+        case 'labeled_phrase': onLabeledPhrase(msg); break;
+        case 'final_grouped':  onFinalGrouped(msg);  break;
+        case 'done':           onDone(msg);          break;
         case 'error':
           appendError(finalFeed, '서버 오류: ' + (msg.message || ''));
           break;
         default:
           console.warn('[demo-ui] unknown message type:', msg.type);
       }
-    }
-
-    function onSegment(msg) {
-      // segment 이벤트: 서버 grouping 내부 trigger. UI 직접 표시 폐기 (PLAN-005-T-003/adr-09)
-      console.debug('[demo-ui] segment', msg.label, msg.t_start);
     }
 
     function onStt(msg) {
@@ -566,9 +559,15 @@
 
     }
 
-    /* labeled_word: 우-중 매핑 영역 — 같은 label 연속이면 concat, 다른 label 이면 새 row */
-    function onLabeledWord(msg) {
+    /* labeled_phrase: 우-중 매핑 영역 — 같은 label 연속이면 concat, 다른 label 이면 새 row */
+    function formatLabel(label) {
+      const colon = label.indexOf(':');
+      return colon !== -1 ? label.slice(colon + 1) : label;
+    }
+
+    function onLabeledPhrase(msg) {
       const { label, text } = msg;
+      const displayName = formatLabel(label);
       const last = mapFeed.lastElementChild;
       if (last && last.dataset.label === label) {
         const txt = last.querySelector('.text-str');
@@ -577,7 +576,7 @@
         const row = document.createElement('div');
         row.className = 'map-row';
         row.dataset.label = label;
-        row.appendChild(makeBadge(label, labelColor(label)));
+        row.appendChild(makeBadge(displayName, labelColor(label)));
         const txt = document.createElement('span');
         txt.className = 'text-str';
         txt.textContent = text;
@@ -608,34 +607,15 @@
       scrollBot(finalFeed);
     }
 
-    function onRelabel(msg) {
-      // labeled_word rows 는 segment_id 추적 없음. final_grouped 가 canonical 라벨 반영.
-      console.debug('[demo-ui] relabel (noop):', msg.new_label);
-    }
-
     function onDone(msg) {
-      const { candidates = [] } = msg;
       setStatus('완료');
 
-      // 우-하에 [종료] + candidates 요약 추가
       const section = document.createElement('div');
       section.className = 'done-section';
-
       const header = document.createElement('div');
       header.className = 'done-header';
       header.textContent = '[종료]';
       section.appendChild(header);
-
-      for (const c of candidates) {
-        const row = document.createElement('div');
-        row.className = 'done-row';
-        row.appendChild(makeBadge(c.auto_id, labelColor(c.auto_id)));
-        const info = document.createElement('span');
-        info.textContent = c.utterance_count + '발화 ' + (+c.total_duration).toFixed(1) + 's';
-        row.appendChild(info);
-        section.appendChild(row);
-      }
-
       finalFeed.appendChild(section);
       scrollBot(finalFeed);
 
@@ -649,14 +629,6 @@
       span.style.background = color;
       span.textContent = '[' + label + ']';
       return span;
-    }
-
-    function updateBadge(rowEl, label, color) {
-      if (!rowEl) return;
-      const badge = rowEl.querySelector('.label-badge');
-      if (!badge) return;
-      badge.style.background = color;
-      badge.textContent = '[' + label + ']';
     }
 
     function clearFeeds() {
