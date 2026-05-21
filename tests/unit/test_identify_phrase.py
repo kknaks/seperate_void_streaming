@@ -253,15 +253,15 @@ class TestIdentifyPhraseRunningAverage:
         label2 = await engine.identify_phrase(make_pcm(2.0))
         assert label2 == "auto:A"
 
-        expected_raw = 0.7 * emb1 + 0.3 * emb2
+        expected_raw = 0.9 * emb1 + 0.1 * emb2
         expected = expected_raw / np.linalg.norm(expected_raw)
         np.testing.assert_allclose(
             engine._phrase_centroids[0][0], expected, atol=1e-5,
-            err_msg="centroid 가 running average (0.7*old + 0.3*new, L2 정규화) 여야 함",
+            err_msg="centroid 가 running average (0.9*old + 0.1*new, L2 정규화) 여야 함",
         )
 
     async def test_running_average_weight_old_dominant(self):
-        """weight 0.7 old: 갱신 후 centroid 는 새 emb 보다 기존 emb 에 더 가까워야 함."""
+        """weight 0.9 old: 갱신 후 centroid 는 새 emb 보다 기존 emb 에 더 가까워야 함."""
         engine, mock_diart, _ = make_engine()
         emb1 = np.zeros(D, dtype=np.float32)
         emb1[0] = 1.0
@@ -283,14 +283,59 @@ class TestIdentifyPhraseRunningAverage:
         dist_to_old = float(np.linalg.norm(centroid - emb1))
         dist_to_new = float(np.linalg.norm(centroid - emb2))
         assert dist_to_old < dist_to_new, (
-            f"centroid 이 old emb 에 더 가까워야 함 (weight 0.7): "
+            f"centroid 이 old emb 에 더 가까워야 함 (weight 0.9): "
             f"dist_old={dist_to_old:.4f}, dist_new={dist_to_new:.4f}"
         )
 
-    async def test_threshold_0_35_default(self):
-        """SpeakerEngine() 기본 phrase_auto_threshold == 0.35."""
+    async def test_threshold_0_42_default(self):
+        """SpeakerEngine() 기본 phrase_auto_threshold == 0.42."""
         engine, _, _ = make_engine()
-        assert engine._phrase_auto_threshold == pytest.approx(0.35)
+        assert engine._phrase_auto_threshold == pytest.approx(0.42)
+
+    async def test_threshold_blocks_different_speaker(self):
+        """두 emb 의 cosine sim ~0.3 → threshold 0.42 불통과 → 신규 라벨 (collapse 방지)."""
+        engine, mock_diart, _ = make_engine()
+        emb_a = np.zeros(D, dtype=np.float32)
+        emb_a[0] = 1.0  # [1, 0, ...]
+
+        # sim(emb_a, emb_b) ≈ 0.3 — threshold 0.42 미만
+        emb_b_raw = np.zeros(D, dtype=np.float32)
+        emb_b_raw[0] = 0.3
+        emb_b_raw[1] = 0.954  # normalize([0.3, 0.954]) ≈ sim 0.3 with emb_a
+        emb_b = (emb_b_raw / np.linalg.norm(emb_b_raw)).astype(np.float32)
+
+        engine._store.find_match = AsyncMock(return_value=None)
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb_a.copy())
+        label_a = await engine.identify_phrase(make_pcm(2.0))
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb_b.copy())
+        label_b = await engine.identify_phrase(make_pcm(2.0))
+
+        assert label_a != label_b, "sim ~0.3 은 threshold 0.42 미만 → 별도 라벨이어야 함"
+        assert len(engine._phrase_centroids) == 2
+
+    async def test_threshold_matches_same_speaker_variation(self):
+        """같은 화자 emb 변이 (sim ~0.95) → threshold 0.42 통과 → 동일 라벨 (split 방지)."""
+        engine, mock_diart, _ = make_engine()
+        emb1 = np.zeros(D, dtype=np.float32)
+        emb1[0] = 1.0
+
+        emb2_raw = np.zeros(D, dtype=np.float32)
+        emb2_raw[0] = 0.95
+        emb2_raw[1] = 0.05
+        emb2 = (emb2_raw / np.linalg.norm(emb2_raw)).astype(np.float32)
+
+        engine._store.find_match = AsyncMock(return_value=None)
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb1.copy())
+        label1 = await engine.identify_phrase(make_pcm(2.0))
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb2.copy())
+        label2 = await engine.identify_phrase(make_pcm(2.0))
+
+        assert label1 == label2 == "auto:A"
+        assert len(engine._phrase_centroids) == 1
 
 
 class TestIdentifyPhraseStreamSharing:

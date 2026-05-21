@@ -62,7 +62,7 @@ class SpeakerEngine:
         embedding_model: str = "pyannote/embedding",
         device: str | None = None,
         phrase_short_threshold_s: float = 1.5,
-        phrase_auto_threshold: float = 0.35,
+        phrase_auto_threshold: float = 0.42,
     ) -> None:
         # env 해석 (인자 우선 → env fallback) — EnvironmentError 가능 (F-04)
         config = load_engine_config(storage_url, hf_token)
@@ -497,7 +497,7 @@ class SpeakerEngine:
             # _phrase_centroids 매칭이면 running average 갱신 (stream clusterer 는 자체 update)
             if best_phrase_idx >= 0:
                 old, lbl = self._phrase_centroids[best_phrase_idx]
-                updated = 0.7 * old + 0.3 * norm_emb
+                updated = 0.9 * old + 0.1 * norm_emb
                 updated = updated / (np.linalg.norm(updated) + 1e-9)
                 self._phrase_centroids[best_phrase_idx] = (updated, lbl)
             return best_label
