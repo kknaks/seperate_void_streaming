@@ -31,6 +31,20 @@ from speaker_engine.types import (
 
 logger = logging.getLogger(__name__)
 
+_HIGH_CONFIDENCE_SIM: float = 0.55  # centroid update gate (PLAN-006-T-024)
+
+
+def _length_to_weight(duration_s: float) -> float:
+    """Phrase duration → centroid update weight (PLAN-006-T-024).
+
+    짧은 phrase embedding 이 noisy → update weight 최소화.
+    """
+    if duration_s < 1.0:
+        return 0.02
+    if duration_s < 3.0:
+        return 0.05
+    return 0.15
+
 
 @dataclass
 class _UtteranceRecord:
@@ -63,6 +77,7 @@ class SpeakerEngine:
         device: str | None = None,
         phrase_short_threshold_s: float = 0.3,
         phrase_auto_threshold: float = 0.42,
+        phrase_high_confidence_sim: float = _HIGH_CONFIDENCE_SIM,
     ) -> None:
         # env 해석 (인자 우선 → env fallback) — EnvironmentError 가능 (F-04)
         config = load_engine_config(storage_url, hf_token)
@@ -114,6 +129,7 @@ class SpeakerEngine:
         # identify_phrase 전용 state (PLAN-006-T-002, spec-04 §9)
         self._phrase_short_threshold_s: float = phrase_short_threshold_s
         self._phrase_auto_threshold: float = phrase_auto_threshold
+        self._phrase_high_confidence_sim: float = phrase_high_confidence_sim
         self._last_phrase_label: str | None = None
         # phrase 경로에서 발급된 auto centroids — (L2-normalized embedding, label)
         self._phrase_centroids: list[tuple[np.ndarray, str]] = []
@@ -455,17 +471,17 @@ class SpeakerEngine:
 
         if not label:
             # Tier 3: centroid 매칭 → auto 라벨 결정
-            label = self._resolve_auto_label(norm_emb)
+            label = self._resolve_auto_label(norm_emb, duration_s)
 
         self._last_phrase_label = label
         return label
 
-    def _resolve_auto_label(self, norm_emb: np.ndarray) -> str:
+    def _resolve_auto_label(self, norm_emb: np.ndarray, duration_s: float) -> str:
         """auto label 결정: 기존 centroid 최근접 매칭 → 없으면 신규 letter 발급.
 
         stream 경로 centroids (OnlineSpeakerClusterer) 와 phrase 경로 centroids
         (_phrase_centroids) 를 모두 탐색 (단방향 공유: stream→phrase).
-        _phrase_centroids 매칭 성공 시 running average (0.7 old + 0.3 new) 로 갱신.
+        _phrase_centroids 매칭 성공 시 length-weighted + high-confidence gate 적용.
         """
         best_label: str | None = None
         best_sim: float = -2.0
@@ -494,10 +510,11 @@ class SpeakerEngine:
                 best_phrase_idx = i
 
         if best_sim >= self._phrase_auto_threshold and best_label is not None:
-            # _phrase_centroids 매칭이면 running average 갱신 (stream clusterer 는 자체 update)
-            if best_phrase_idx >= 0:
+            # _phrase_centroids 매칭: high-confidence gate + length-weighted update
+            if best_phrase_idx >= 0 and best_sim >= self._phrase_high_confidence_sim:
+                weight = _length_to_weight(duration_s)
                 old, lbl = self._phrase_centroids[best_phrase_idx]
-                updated = 0.9 * old + 0.1 * norm_emb
+                updated = (1.0 - weight) * old + weight * norm_emb
                 updated = updated / (np.linalg.norm(updated) + 1e-9)
                 self._phrase_centroids[best_phrase_idx] = (updated, lbl)
             return best_label

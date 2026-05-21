@@ -249,7 +249,10 @@ class TestIdentifyPhraseShortPhrase:
 
 class TestIdentifyPhraseRunningAverage:
     async def test_running_average_updates_centroid(self):
-        """같은 화자 emb 2회 호출 → 동일 라벨 + centroid 가 두 emb 의 가중 평균에 근접."""
+        """같은 화자 emb 2회 호출 (2.0s) → 동일 라벨 + centroid 가 length-weighted 평균에 근접.
+
+        2.0s → _length_to_weight=0.05, high-confidence gate 통과 (sim~0.99>0.55).
+        """
         engine, mock_diart, _ = make_engine()
         emb1 = np.zeros(D, dtype=np.float32)
         emb1[0] = 1.0  # L2 normalized unit vector
@@ -269,11 +272,12 @@ class TestIdentifyPhraseRunningAverage:
         label2 = await engine.identify_phrase(make_pcm(2.0))
         assert label2 == "auto:A"
 
-        expected_raw = 0.9 * emb1 + 0.1 * emb2
+        # 2.0s → weight=0.05
+        expected_raw = 0.95 * emb1 + 0.05 * emb2
         expected = expected_raw / np.linalg.norm(expected_raw)
         np.testing.assert_allclose(
             engine._phrase_centroids[0][0], expected, atol=1e-5,
-            err_msg="centroid 가 running average (0.9*old + 0.1*new, L2 정규화) 여야 함",
+            err_msg="centroid 가 length-weighted average (0.95*old + 0.05*new, L2 정규화) 여야 함",
         )
 
     async def test_running_average_weight_old_dominant(self):
@@ -352,6 +356,125 @@ class TestIdentifyPhraseRunningAverage:
 
         assert label1 == label2 == "auto:A"
         assert len(engine._phrase_centroids) == 1
+
+    async def test_length_weight_short_phrase(self):
+        """0.5s phrase → weight=0.02 로 centroid update."""
+        engine, mock_diart, _ = make_engine()
+        emb1 = np.zeros(D, dtype=np.float32)
+        emb1[0] = 1.0
+
+        emb2_raw = np.zeros(D, dtype=np.float32)
+        emb2_raw[0] = 0.9
+        emb2_raw[1] = 0.1
+        emb2 = (emb2_raw / np.linalg.norm(emb2_raw)).astype(np.float32)
+
+        engine._store.find_match = AsyncMock(return_value=None)
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb1.copy())
+        await engine.identify_phrase(make_pcm(2.0))  # 초기 centroid 등록
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb2.copy())
+        await engine.identify_phrase(make_pcm(0.5))  # 0.5s → weight=0.02
+
+        # 0.5s < 1.0s → weight=0.02
+        expected_raw = 0.98 * emb1 + 0.02 * emb2
+        expected = expected_raw / np.linalg.norm(expected_raw)
+        np.testing.assert_allclose(
+            engine._phrase_centroids[0][0], expected, atol=1e-5,
+            err_msg="0.5s phrase: weight=0.02 기대",
+        )
+
+    async def test_length_weight_long_phrase(self):
+        """4.0s phrase → weight=0.15 로 centroid update."""
+        engine, mock_diart, _ = make_engine()
+        emb1 = np.zeros(D, dtype=np.float32)
+        emb1[0] = 1.0
+
+        emb2_raw = np.zeros(D, dtype=np.float32)
+        emb2_raw[0] = 0.9
+        emb2_raw[1] = 0.1
+        emb2 = (emb2_raw / np.linalg.norm(emb2_raw)).astype(np.float32)
+
+        engine._store.find_match = AsyncMock(return_value=None)
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb1.copy())
+        await engine.identify_phrase(make_pcm(2.0))  # 초기 centroid 등록
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb2.copy())
+        await engine.identify_phrase(make_pcm(4.0))  # 4.0s → weight=0.15
+
+        # 4.0s >= 3.0s → weight=0.15
+        expected_raw = 0.85 * emb1 + 0.15 * emb2
+        expected = expected_raw / np.linalg.norm(expected_raw)
+        np.testing.assert_allclose(
+            engine._phrase_centroids[0][0], expected, atol=1e-5,
+            err_msg="4.0s phrase: weight=0.15 기대",
+        )
+
+    async def test_low_confidence_no_update(self):
+        """sim 0.45 (>= phrase_auto_threshold 0.42 but < _HIGH_CONFIDENCE_SIM 0.55) → 라벨 반환, centroid 갱신 X."""
+        engine, mock_diart, _ = make_engine()
+
+        # emb1 = [1, 0, ...]
+        emb1 = np.zeros(D, dtype=np.float32)
+        emb1[0] = 1.0
+
+        # emb2: sim(emb1, emb2) ≈ 0.45, 0.42 통과하지만 0.55 미만
+        # sim = cos(θ), cos(θ) ≈ 0.45 → θ ≈ 63°
+        # emb2 = [0.45, sqrt(1-0.45^2), 0, ...] = [0.45, 0.8930, 0, ...]
+        emb2_raw = np.zeros(D, dtype=np.float32)
+        emb2_raw[0] = 0.45
+        emb2_raw[1] = float(np.sqrt(1 - 0.45**2))
+        emb2 = (emb2_raw / np.linalg.norm(emb2_raw)).astype(np.float32)
+
+        engine._store.find_match = AsyncMock(return_value=None)
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb1.copy())
+        label1 = await engine.identify_phrase(make_pcm(2.0))
+        assert label1 == "auto:A"
+
+        centroid_before = engine._phrase_centroids[0][0].copy()
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb2.copy())
+        label2 = await engine.identify_phrase(make_pcm(2.0))
+
+        # 라벨은 동일 반환
+        assert label2 == "auto:A", "sim >= phrase_auto_threshold → 같은 라벨 반환"
+        # centroid 갱신 없음 (sim < _HIGH_CONFIDENCE_SIM)
+        np.testing.assert_allclose(
+            engine._phrase_centroids[0][0], centroid_before, atol=1e-6,
+            err_msg="low confidence: centroid 갱신 없어야 함",
+        )
+
+    async def test_high_confidence_updates(self):
+        """sim >= _HIGH_CONFIDENCE_SIM(0.55) → 라벨 반환 + centroid 갱신."""
+        engine, mock_diart, _ = make_engine()
+
+        emb1 = np.zeros(D, dtype=np.float32)
+        emb1[0] = 1.0
+
+        # emb2: sim(emb1, emb2) ≈ 0.7 > 0.55
+        emb2_raw = np.zeros(D, dtype=np.float32)
+        emb2_raw[0] = 0.7
+        emb2_raw[1] = float(np.sqrt(1 - 0.7**2))
+        emb2 = (emb2_raw / np.linalg.norm(emb2_raw)).astype(np.float32)
+
+        engine._store.find_match = AsyncMock(return_value=None)
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb1.copy())
+        label1 = await engine.identify_phrase(make_pcm(2.0))
+        assert label1 == "auto:A"
+
+        centroid_before = engine._phrase_centroids[0][0].copy()
+
+        mock_diart.embed_pcm = AsyncMock(return_value=emb2.copy())
+        label2 = await engine.identify_phrase(make_pcm(2.0))
+
+        assert label2 == "auto:A", "sim >= phrase_auto_threshold → 같은 라벨 반환"
+        # centroid 갱신되어야 함 (sim >= _HIGH_CONFIDENCE_SIM)
+        assert not np.allclose(engine._phrase_centroids[0][0], centroid_before, atol=1e-6), (
+            "high confidence: centroid 갱신 돼야 함"
+        )
 
 
 class TestIdentifyPhraseStreamSharing:
