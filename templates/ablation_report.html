@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f7fa; color: #333; }
+    header { background: #1a202c; color: #fff; padding: 1.5rem 2rem; }
+    header h1 { font-size: 1.4rem; font-weight: 600; }
+    header small { color: #a0aec0; font-size: 0.8rem; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem; }
+    section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1);
+              margin-bottom: 1.5rem; padding: 1.5rem; }
+    h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: .5rem; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 1rem; }
+    .summary-card { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; }
+    .summary-card h3 { font-size: .8rem; color: #718096; text-transform: uppercase; letter-spacing: .05em; }
+    .summary-card .val { font-size: 1.4rem; font-weight: 700; color: #2d3748; }
+    .summary-card .sub { font-size: .8rem; color: #4a5568; margin-top: .25rem; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .chart-wrap { position: relative; height: 320px; }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    thead th { background: #edf2f7; position: sticky; top: 0; padding: .5rem .75rem;
+                text-align: left; cursor: pointer; user-select: none; white-space: nowrap; }
+    thead th:hover { background: #e2e8f0; }
+    tbody td { padding: .45rem .75rem; border-bottom: 1px solid #f0f0f0; }
+    tbody tr:hover { background: #f7fafc; }
+    tr.error-row td { background: #fff5f5; color: #c53030; }
+    .badge { display: inline-block; padding: .15rem .5rem; border-radius: 4px;
+             font-size: .7rem; font-weight: 600; }
+    .badge-ok { background: #c6f6d5; color: #22543d; }
+    .badge-err { background: #fed7d7; color: #822727; }
+    .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+    .der-good { color: #276749; font-weight: 600; }
+    .der-bad  { color: #c53030; }
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>{{ title }}</h1>
+  <small>Generated {{ generated_at }} · {{ total_rows }} rows · {{ error_rows }} errors</small>
+</header>
+<div class="container">
+
+  <!-- 1. Summary -->
+  <section id="summary">
+    <h2>Summary</h2>
+    {% if summary.best_overall %}
+    <div class="summary-grid">
+      <div class="summary-card">
+        <h3>Best Overall (DER)</h3>
+        <div class="val">{{ "%.3f"|format(summary.best_overall.metrics.der) }}</div>
+        <div class="sub">{{ summary.best_overall.embedding }} · w={{ summary.best_overall.window_s }}s · s={{ summary.best_overall.step_s }}s<br>{{ summary.best_overall.sample }}</div>
+      </div>
+      {% for emb, row in summary.best_per_model.items() %}
+      <div class="summary-card">
+        <h3>{{ emb }}</h3>
+        <div class="val">{{ "%.3f"|format(row.metrics.der) }}</div>
+        <div class="sub">w={{ row.window_s }}s · s={{ row.step_s }}s · {{ row.sample }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if summary.tradeoff %}
+    <p style="margin-top:1rem;font-size:.85rem;color:#4a5568;">
+      <strong>Trade-off:</strong> Best DER is
+      <code>{{ summary.tradeoff.der_champion.embedding }}</code> (DER={{ "%.3f"|format(summary.tradeoff.der_champion.metrics.der) }})
+      but best latency-p50 is
+      <code>{{ summary.tradeoff.latency_champion.embedding }}</code>
+      (p50={{ "%.2f"|format(summary.tradeoff.latency_champion.metrics.labeling_latency_p50_s) }}s).
+    </p>
+    {% endif %}
+    {% else %}
+    <p>No valid rows found (all errored).</p>
+    {% endif %}
+  </section>
+
+  <!-- 2. Charts -->
+  <section id="charts">
+    <h2>Charts</h2>
+    <div class="charts-grid">
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">Scheduler vs DER (avg per scheduler)</h3>
+        <div class="chart-wrap"><canvas id="chart-scheduler-bar"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">Scheduler DER delta vs baseline (↓ = improvement)</h3>
+        <div class="chart-wrap"><canvas id="chart-scheduler-delta"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">DER vs Labeling Latency (p50)</h3>
+        <div class="chart-wrap"><canvas id="chart-der-latency"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">DER vs CPU avg %</h3>
+        <div class="chart-wrap"><canvas id="chart-der-cpu"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">Window Size vs DER (avg per window)</h3>
+        <div class="chart-wrap"><canvas id="chart-window-der"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Table -->
+  <section id="results">
+    <h2>Results Table <small style="font-weight:normal;color:#718096;">(click header to sort)</small></h2>
+    <div class="table-wrap">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Embedding</th>
+            <th onclick="sortTable(1)">Window</th>
+            <th onclick="sortTable(2)">Step</th>
+            <th onclick="sortTable(3)">Scheduler</th>
+            <th onclick="sortTable(4)">Sample</th>
+            <th onclick="sortTable(5)">DER ↑best</th>
+            <th onclick="sortTable(6)">Lat p50 (s)</th>
+            <th onclick="sortTable(7)">Lat p95 (s)</th>
+            <th onclick="sortTable(8)">Consistency</th>
+            <th onclick="sortTable(9)">CPU peak%</th>
+            <th onclick="sortTable(10)">RAM peak MB</th>
+            <th onclick="sortTable(11)">Cold-load (s)</th>
+            <th onclick="sortTable(12)">Runtime (s)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr class="{{ 'error-row' if row.error else '' }}">
+            <td>{{ row.embedding }}</td>
+            <td>{{ row.window_s }}</td>
+            <td>{{ row.step_s }}</td>
+            <td>{{ row.get("scheduler", "baseline") }}</td>
+            <td>{{ row.sample }}</td>
+            <td class="{{ 'der-good' if row.metrics.der <= 0.15 else 'der-bad' }}">
+              {{ "%.3f"|format(row.metrics.der) if row.metrics.der is not none else "—" }}
+            </td>
+            <td>{{ "%.2f"|format(row.metrics.labeling_latency_p50_s) }}</td>
+            <td>{{ "%.2f"|format(row.metrics.labeling_latency_p95_s) }}</td>
+            <td>{{ "%.3f"|format(row.metrics.label_consistency) }}</td>
+            <td>{{ "%.1f"|format(row.metrics.cpu_peak_pct) }}</td>
+            <td>{{ "%.0f"|format(row.metrics.ram_peak_mb) }}</td>
+            <td>{{ "%.2f"|format(row.metrics.cold_load_s) }}</td>
+            <td>{{ "%.1f"|format(row.metrics.total_runtime_s) }}</td>
+            <td>
+              {% if row.error %}
+                <span class="badge badge-err" title="{{ row.error }}">ERROR</span>
+              {% else %}
+                <span class="badge badge-ok">OK</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const chartData = {{ chart_data|safe }};
+
+function makeScatter(canvasId, datasets, xLabel, yLabel) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' }, tooltip: {
+        callbacks: { label: ctx => `${ctx.dataset.label}: (${ctx.parsed.x.toFixed(2)}, ${ctx.parsed.y.toFixed(3)})` }
+      }},
+      scales: {
+        x: { title: { display: true, text: xLabel } },
+        y: { title: { display: true, text: yLabel } },
+      }
+    }
+  });
+}
+
+function makeLine(canvasId, datasets, xLabel, yLabel) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { type: 'linear', title: { display: true, text: xLabel } },
+        y: { title: { display: true, text: yLabel } },
+      }
+    }
+  });
+}
+
+function makeBar(canvasId, barData, yLabel) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx || !barData) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels: barData.labels, datasets: barData.datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { title: { display: true, text: 'Scheduler' } },
+        y: { title: { display: true, text: yLabel } },
+      }
+    }
+  });
+}
+
+makeBar(    'chart-scheduler-bar',   chartData.scheduler_bar,   'DER (avg)');
+makeBar(    'chart-scheduler-delta', chartData.scheduler_delta,  'DER delta vs baseline (↓ = improvement)');
+makeScatter('chart-der-latency', chartData.der_latency, 'Labeling Latency p50 (s)', 'DER');
+makeScatter('chart-der-cpu',     chartData.der_cpu,     'CPU avg %',                'DER');
+makeLine(   'chart-window-der',  chartData.window_der,  'Window (s)',               'DER');
+
+// sortable table
+let _sortDir = {};
+function sortTable(col) {
+  const tbl = document.getElementById('results-table');
+  const tbody = tbl.tBodies[0];
+  const rows = Array.from(tbody.rows);
+  _sortDir[col] = !(_sortDir[col] || false);
+  rows.sort((a, b) => {
+    const av = a.cells[col].textContent.trim();
+    const bv = b.cells[col].textContent.trim();
+    const an = parseFloat(av), bn = parseFloat(bv);
+    const cmp = isNaN(an) || isNaN(bn) ? av.localeCompare(bv) : an - bn;
+    return _sortDir[col] ? cmp : -cmp;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+</script>
+</body>
+</html>

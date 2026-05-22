@@ -1,0 +1,290 @@
+embedding,window_s,step_s,sample,scheduler,der,initial_cluster_latency_s,labeling_latency_p50_s,labeling_latency_p95_s,label_consistency,cpu_peak_pct,cpu_avg_pct,ram_peak_mb,ram_avg_mb,cold_load_s,total_runtime_s,error,timestamp,python,diart,device
+pyannote/embedding,5.0,0.5,record_1.wav,baseline,0.21664352027975198,2.5170648464163827,0.5,5.0,0.49489795918367346,198.4,172.93783783783783,778.81344,296.82494270270274,0.7246626659762114,37.15389295807108,,2026-05-22T02:41:22.866311+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.1,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:02.314112+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.25,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:03.320048+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.5,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:04.323019+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.1,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:05.327694+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.25,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:06.339900+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.5,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:07.346969+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.1,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:08.351588+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.25,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:09.356739+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.5,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:10.366222+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.1,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:11.373946+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.25,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:12.382117+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.5,record_1.wav,baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"Traceback (most recent call last):
+  File ""/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py"", line 210, in run_combination
+    pipeline = SpeakerDiarization(config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py"", line 96, in __init__
+    self.segmentation = SpeakerSegmentation(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py"", line 13, in __init__
+    self.model.eval()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 136, in eval
+    self.load()
+  File ""/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py"", line 124, in load
+    self.model = self.get_model()
+                 ^^^^^^^^^^^^^^^^
+TypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'
+",2026-05-22T03:21:13.390054+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,1.0,0.1,record_1.wav,baseline,0.8903591707174043,1.8083333333333331,0.1,1.0,0.513157894736842,201.1,168.69285714285715,716.750848,435.44576000000006,0.8572750000748783,14.036779541056603,,2026-05-22T03:27:29.028700+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,1.0,0.25,record_1.wav,baseline,0.5586748664888068,2.0083333333333333,0.25,1.0,0.6011904761904762,212.8,175.06153846153848,498.23744,377.7898338461538,0.0,13.041154165985063,,2026-05-22T03:27:42.072668+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,1.0,0.5,record_1.wav,baseline,0.17394260624220548,2.0086206896551726,0.5,1.0,0.5973639455782312,213.2,184.78333333333333,527.48288,326.95364266666667,0.0,12.041909666033462,,2026-05-22T03:27:54.117395+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.1,record_1.wav,baseline,0.8597307801778562,2.808333333333333,0.1,2.0,0.5625,202.1,172.0888888888889,630.571008,395.60442311111115,0.0,18.07399620790966,,2026-05-22T03:28:12.193754+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.25,record_1.wav,baseline,0.5433494107510997,2.7583333333333333,0.25,2.0,0.5555555555555556,197.1,180.05555555555554,634.71616,432.3473635555556,0.0,18.06661399989389,,2026-05-22T03:28:30.262595+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_1.wav,baseline,0.13786851598086317,2.5603448275862073,0.5,2.0,0.5614415979157621,202.5,180.01111111111112,489.242624,283.6015786666667,0.0,18.070855249883607,,2026-05-22T03:28:48.336050+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,3.0,0.1,record_1.wav,baseline,0.8913182946603845,2.565340909090909,0.1,3.0,0.6626984126984128,203.7,183.89130434782604,704.413696,423.41812313043476,0.0,23.09236654196866,,2026-05-22T03:29:11.430499+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,3.0,0.25,record_1.wav,baseline,0.5674561662102712,2.565340909090909,0.25,3.0,0.6009615384615384,205.5,191.04782608695655,652.345344,444.0256333913044,0.0,23.077834750059992,,2026-05-22T03:29:34.510263+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,3.0,0.5,record_1.wav,baseline,0.16323531518408568,2.565340909090909,0.5,3.0,0.5976190476190476,207.8,181.45000000000002,510.459904,296.69239466666664,0.0,24.09126399992965,,2026-05-22T03:29:58.604808+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,5.0,0.1,record_1.wav,baseline,0.8874821976998138,2.5170648464163827,0.1,5.0,0.6333333333333333,201.2,173.1888888888889,637.321216,400.3949226666666,0.0,36.10536366584711,,2026-05-22T03:30:34.712930+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,5.0,0.25,record_1.wav,baseline,0.571102210527126,2.5170648464163827,0.25,5.0,0.6159420289855072,197.3,172.7131578947369,565.018624,370.2896101052632,0.0,38.10436158417724,,2026-05-22T03:31:12.820183+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,1.0,0.1,record_1.wav,baseline,0.8512358515383566,1.8083333333333331,0.1,1.0,0.5789473684210527,189.1,161.65238095238095,719.519744,441.88740266666673,0.0,42.12854012497701,,2026-05-22T03:31:55.340203+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,1.0,0.25,record_1.wav,baseline,0.5345089185942562,2.0083333333333333,0.25,1.0,0.5576923076923077,185.2,144.93191489361703,528.236544,379.5315254468086,0.0,47.151409458136186,,2026-05-22T03:32:42.496152+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,1.0,0.5,record_1.wav,baseline,0.16065237635714802,2.5603448275862073,0.5,1.0,0.6,245.8,160.91627906976743,470.532096,317.1367054883721,0.0,43.118597166845575,,2026-05-22T03:33:25.618231+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.1,record_1.wav,baseline,0.9078582225607,2.808333333333333,0.1,2.0,0.6458333333333333,187.6,166.66610169491526,777.846784,471.60955227118654,0.0,59.19728654087521,,2026-05-22T03:34:24.822022+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.25,record_1.wav,baseline,0.5560248007631,2.7583333333333333,0.25,2.0,0.5725,190.5,171.47678571428574,651.034624,467.22223542857137,0.0,56.16517304209992,,2026-05-22T03:35:20.992586+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_1.wav,baseline,0.2036681947640831,2.5603448275862073,0.5,2.0,0.5403525046382189,212.0,171.6379310344828,426.164224,367.10668358620694,0.0,58.17700608400628,,2026-05-22T03:36:19.176532+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,3.0,0.1,record_1.wav,baseline,0.8888302373355436,2.565340909090909,0.1,3.0,0.6626984126984128,204.7,184.29076923076923,766.7712,499.8302168615384,0.0,65.23003508290276,,2026-05-22T03:37:24.414371+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,3.0,0.25,record_1.wav,baseline,0.5638858039491248,2.565340909090909,0.25,3.0,0.6043478260869566,312.5,181.8774647887324,675.67616,404.32619808450715,0.0,71.23534791707061,,2026-05-22T03:38:35.654142+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,3.0,0.5,record_1.wav,baseline,0.15184139489038456,2.565340909090909,0.5,3.0,0.6241496598639455,200.3,176.44583333333333,489.766912,386.4287004444445,0.0,72.21189691708423,,2026-05-22T03:39:47.869574+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,5.0,0.1,record_1.wav,baseline,0.8878968739206207,2.5170648464163827,0.1,5.0,0.6333333333333333,207.0,188.43473684210525,527.335424,452.7740820210527,0.0,95.27176725002937,,2026-05-22T03:41:23.145652+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,5.0,0.25,record_1.wav,baseline,0.5741694323070269,2.5170648464163827,0.25,5.0,0.6159420289855072,208.7,192.84583333333333,550.715392,438.3151786666667,0.0,96.3029205838684,,2026-05-22T03:42:59.455003+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,5.0,0.5,record_1.wav,baseline,0.2414259534892355,2.5170648464163827,0.5,5.0,0.4950980392156863,210.5,185.9115384615385,483.81952,363.9803273846154,0.0,104.42563504097052,,2026-05-22T03:44:43.889999+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.1,record_1.wav,baseline,0.846353730165389,1.8083333333333331,0.1,1.0,0.5964912280701754,721.5,192.51666666666668,688.078848,399.90194631111115,0.0,180.55558354198,,2026-05-22T03:47:49.246135+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.25,record_1.wav,baseline,0.5262416570054381,2.0083333333333333,0.25,1.0,0.6011904761904762,210.2,189.7649717514124,514.818048,392.1162355706214,0.0,177.59710104204714,,2026-05-22T03:50:46.853452+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.5,record_1.wav,baseline,0.14107536898105894,2.5603448275862073,0.5,1.0,0.5755555555555556,209.0,179.72916666666666,407.38816,336.72021333333333,0.0,192.59676100010984,,2026-05-22T03:53:59.458499+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.1,record_1.wav,baseline,0.8558287971360702,2.808333333333333,0.1,2.0,0.5555555555555556,501.7,135.4906103286385,543.62112,371.57504360563377,0.0,641.7483509578742,,2026-05-22T04:04:41.245640+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.1,record_1.wav,baseline,0.8558287971360702,2.808333333333333,0.1,2.0,0.5555555555555556,190.1,134.47570093457944,576.897024,390.37197238629284,0.0,644.7524775830097,,2026-05-22T04:05:33.361948+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.25,record_1.wav,baseline,0.5342183605649401,2.7583333333333333,0.25,2.0,0.5717592592592593,176.6,154.02809611829946,469.925888,391.81575855083184,0.0,543.5474298340268,,2026-05-22T04:13:44.854452+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.25,record_1.wav,baseline,0.5342183605649401,2.7583333333333333,0.25,2.0,0.5717592592592593,193.3,155.61189083820662,478.035968,398.41068612865496,0.0,515.4552753751632,,2026-05-22T04:14:08.834854+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.5,record_1.wav,baseline,0.1321776101897303,2.5603448275862073,0.5,2.0,0.5567879325643301,209.6,158.75358490566038,482.639872,403.5039772981132,0.0,532.8568706670776,,2026-05-22T04:22:37.724817+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.5,record_1.wav,baseline,0.1321776101897303,2.5603448275862073,0.5,2.0,0.5567879325643301,188.3,156.02734375,491.126784,409.410848,0.0,514.8025114999618,,2026-05-22T04:22:43.648629+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.1,record_1.wav,baseline,0.8884155611147369,2.565340909090909,0.1,3.0,0.6626984126984128,186.8,163.14806547619048,587.153408,453.88434285714277,0.0,675.9042384999339,,2026-05-22T04:33:53.617413+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.1,record_1.wav,baseline,0.8884155611147369,2.565340909090909,0.1,3.0,0.6626984126984128,201.7,165.47726597325408,597.1968,461.4853283566122,0.0,676.9194621250499,,2026-05-22T04:34:00.556207+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.25,record_1.wav,baseline,0.5633785167056712,2.565340909090909,0.25,3.0,0.6260869565217391,176.2,165.85991124260354,561.987584,451.71187275739646,0.0,679.9541810001247,,2026-05-22T04:45:20.522561+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.25,record_1.wav,baseline,0.5633785167056712,2.565340909090909,0.25,3.0,0.6260869565217391,204.5,166.0524158125915,523.599872,453.0271953147878,0.0,686.9462788330857,,2026-05-22T04:45:20.574816+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.5,record_1.wav,baseline,0.15162714550963433,2.565340909090909,0.5,3.0,0.5976190476190476,176.5,162.31183844011142,562.364416,427.21519598885794,0.0,720.6268365830183,,2026-05-22T04:57:21.161386+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.5,record_1.wav,baseline,0.15162714550963433,2.565340909090909,0.5,3.0,0.5976190476190476,192.6,162.48126721763086,545.325056,428.39339583471076,0.0,728.6090634579305,,2026-05-22T04:57:29.194240+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.1,record_1.wav,baseline,0.8879867204351274,2.5170648464163827,0.1,5.0,0.6333333333333333,214.7,160.37970882620564,550.731776,428.04562600181987,0.0,1102.9455312089995,,2026-05-22T05:15:44.125994+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.1,record_1.wav,baseline,0.8879867204351274,2.5170648464163827,0.1,5.0,0.6333333333333333,209.9,159.99487410071944,557.760512,428.10823274820143,0.0,1116.0185065418482,,2026-05-22T05:16:05.233418+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.25,record_1.wav,baseline,0.5700226700989589,2.5170648464163827,0.25,5.0,0.6159420289855072,189.1,161.7153713298791,544.44032,431.7022423765112,0.0,1161.952338791918,,2026-05-22T05:35:06.098603+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.25,record_1.wav,baseline,0.5700226700989589,2.5170648464163827,0.25,5.0,0.6159420289855072,215.9,161.3108843537415,514.670592,428.0749522721088,0.0,1179.6228782499675,,2026-05-22T05:35:44.828003+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.5,record_1.wav,baseline,0.23531777275675161,2.5170648464163827,0.5,5.0,0.5064616755793226,189.3,159.52920203735147,556.97408,426.690695606112,0.0,1182.3545017500874,,2026-05-22T05:54:48.402346+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.5,record_1.wav,baseline,0.23531777275675161,2.5170648464163827,0.5,5.0,0.5064616755793226,225.3,160.0160136286201,520.798208,422.88955922316865,0.0,1178.7510059168562,,2026-05-22T05:55:23.595792+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,1.0,0.1,record_3.wav,baseline,0.920485272170657,2.608333333333334,0.1,1.0,0.4222222222222222,185.2,142.06,726.335488,353.19971840000005,0.0,10.029506874969229,,2026-05-22T05:56:10.216620+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,1.0,0.25,record_3.wav,baseline,0.65737343072199,2.4416666666666664,0.25,1.0,0.4896551724137931,189.8,144.83999999999997,307.249152,248.8778752,0.0,10.048635042039678,,2026-05-22T05:56:20.268682+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,1.0,0.5,record_3.wav,baseline,0.37801139188929983,3.5086206896551726,0.5,1.0,0.3929824561403509,187.6,146.60000000000002,261.799936,212.78446933333333,0.0,9.04421529197134,,2026-05-22T05:56:29.315293+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.1,record_3.wav,baseline,0.8697043757586721,2.3416666666666663,0.1,2.0,0.5444444444444445,190.6,165.15,297.582592,271.26715733333333,0.0,12.042537417029962,,2026-05-22T05:56:41.360034+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.25,record_3.wav,baseline,0.6220131785698537,2.558333333333333,0.25,2.0,0.5327272727272727,191.8,144.99285714285713,401.113088,266.57704228571436,0.0,14.047392499865964,,2026-05-22T05:56:55.408803+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_3.wav,baseline,0.2606297448697966,2.008695652173913,0.5,2.0,0.47987117552334946,189.0,145.0142857142857,287.78496,225.40053942857148,0.0,14.051471583079547,,2026-05-22T05:57:09.463239+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,3.0,0.1,record_3.wav,baseline,0.8500138520783704,3.0085227272727275,0.1,3.0,0.6339285714285714,188.4,156.45294117647057,387.137536,271.46264094117646,0.0,17.045833416981623,,2026-05-22T05:57:26.510687+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,3.0,0.25,record_3.wav,baseline,0.5762533176940946,3.0085227272727275,0.25,3.0,0.5527272727272727,190.6,173.28000000000003,447.184896,305.77240746666666,0.0,15.044340874999762,,2026-05-22T05:57:41.557276+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,3.0,0.5,record_3.wav,baseline,0.32757728309786927,4.008333333333333,0.5,3.0,0.4533045977011494,198.6,170.55,287.37536,235.15545600000002,0.0,16.0327685829252,,2026-05-22T05:57:57.593857+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,5.0,0.1,record_3.wav,baseline,0.8453894520030882,2.34641638225256,0.1,5.0,0.6586538461538461,193.2,174.65499999999997,380.862464,296.96655359999994,0.0,20.0729473750107,,2026-05-22T05:58:17.670534+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,5.0,0.25,record_3.wav,baseline,0.5580789896854895,2.34641638225256,0.25,5.0,0.6043478260869566,194.9,180.1952380952381,436.55168,331.406969904762,0.0,21.055386333027855,,2026-05-22T05:58:38.730810+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,5.0,0.5,record_3.wav,baseline,0.29844863023407825,2.34641638225256,0.5,5.0,0.4913793103448276,197.9,177.86818181818182,319.602688,273.842176,0.0,22.072805916890502,,2026-05-22T05:59:00.808326+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,1.0,0.1,record_3.wav,baseline,0.8675319309923822,2.5083333333333333,0.1,1.0,0.5,198.4,175.65652173913043,515.35872,397.67102330434784,0.0,23.084815707989037,,2026-05-22T05:59:24.345807+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,1.0,0.25,record_3.wav,baseline,0.6372504647778467,2.4416666666666664,0.25,1.0,0.4145299145299145,202.1,182.83636363636361,517.7344,412.77775127272724,0.0,22.08064041705802,,2026-05-22T05:59:46.428293+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,1.0,0.5,record_3.wav,baseline,0.28512137046498004,5.508620689655173,0.5,1.0,0.47054597701149425,199.2,178.67272727272726,381.3376,335.5957061818181,0.0,22.08510895911604,,2026-05-22T06:00:08.514848+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.1,record_3.wav,baseline,0.867446054436451,2.3416666666666663,0.1,2.0,0.5777777777777777,419.8,188.925,499.499008,397.15328,0.0,32.10374287515879,,2026-05-22T06:00:40.620340+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.25,record_3.wav,baseline,0.5950247301271204,2.558333333333333,0.25,2.0,0.5643939393939394,193.9,174.94545454545454,445.677568,390.5766865454545,0.0,33.10542250005528,,2026-05-22T06:01:13.728165+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_3.wav,baseline,0.20719379825604203,2.008695652173913,0.5,2.0,0.5031512605042017,193.2,178.93939393939394,435.175424,402.50821042424246,0.0,33.126340666087344,,2026-05-22T06:01:46.859751+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,3.0,0.1,record_3.wav,baseline,0.8724369171287006,3.0085227272727275,0.1,3.0,0.55,201.2,187.47027027027025,523.8784,412.7173881081081,0.0,37.13477124995552,,2026-05-22T06:02:24.002266+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,3.0,0.25,record_3.wav,baseline,0.6078806826489904,3.0085227272727275,0.25,3.0,0.5527272727272727,199.8,173.03720930232558,457.867264,344.0453298604651,0.0,43.77497504209168,,2026-05-22T06:03:07.784218+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,3.0,0.5,record_3.wav,baseline,0.3822419309269749,4.008333333333333,0.5,3.0,0.475421863536317,200.3,183.98333333333332,374.29248,350.7209752380952,0.0,42.14210845902562,,2026-05-22T06:03:49.932137+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,5.0,0.1,record_3.wav,baseline,0.8754345386604231,2.34641638225256,0.1,5.0,0.5576923076923077,201.9,180.31525423728814,514.064384,403.78840081355935,0.0,59.20585612510331,,2026-05-22T06:04:49.141522+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,5.0,0.25,record_3.wav,baseline,0.5786568692772743,2.34641638225256,0.25,5.0,0.5326086956521738,201.1,186.06984126984128,475.250688,398.0625432380952,0.0,63.21069625020027,,2026-05-22T06:05:52.355275+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,5.0,0.5,record_3.wav,baseline,0.3031671988343595,2.34641638225256,0.5,5.0,0.46690307328605196,316.5,184.20294117647055,437.813248,363.0087228235294,0.0,68.18842404102907,,2026-05-22T06:07:00.547422+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.1,record_3.wav,baseline,0.8373405191121728,2.5083333333333333,0.1,1.0,0.6785714285714286,212.4,187.08434782608694,528.54784,356.94424598260866,0.0,115.36703712493181,,2026-05-22T06:09:00.933906+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.25,record_3.wav,baseline,0.6166261654260987,2.4416666666666664,0.25,1.0,0.5277777777777778,232.3,185.9865546218487,409.747456,340.0050361008403,0.0,119.36194883286953,,2026-05-22T06:11:00.299630+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,1.0,0.5,record_3.wav,baseline,0.26608150557529353,2.525862068965517,0.5,1.0,0.5,210.9,177.24444444444447,394.919936,323.6932266666667,0.0,126.42662191716954,,2026-05-22T06:13:06.785214+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.1,record_3.wav,baseline,0.8662437826533983,2.3416666666666663,0.1,2.0,0.5777777777777777,215.9,191.68905472636817,485.818368,413.76324776119407,0.0,201.61356508289464,,2026-05-22T06:16:28.407770+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.25,record_3.wav,baseline,0.6118054733538972,2.558333333333333,0.25,2.0,0.5327272727272727,219.3,203.07074468085105,504.856576,416.4707349787234,0.0,188.621600584127,,2026-05-22T06:19:37.037587+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,2.0,0.5,record_3.wav,baseline,0.219729096020725,2.008695652173913,0.5,2.0,0.5018996960486322,217.3,185.78818181818178,454.787072,390.3411293090909,0.0,220.60729816695675,,2026-05-22T06:23:17.654146+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.1,record_3.wav,baseline,0.8618091130850757,3.0085227272727275,0.1,3.0,0.6125,229.2,211.09598393574294,488.521728,433.0140519839357,0.0,249.85160125000402,,2026-05-22T06:27:27.516876+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.25,record_3.wav,baseline,0.5844556892796311,3.0085227272727275,0.25,3.0,0.5527272727272727,229.9,209.12230483271372,500.236288,421.9452526394052,0.0,270.1156044998206,,2026-05-22T06:31:57.645410+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,3.0,0.5,record_3.wav,baseline,0.3133132293572909,4.008333333333333,0.5,3.0,0.48096264367816094,225.6,209.53471698113208,461.914112,389.98977400754717,0.0,266.05846733390354,,2026-05-22T06:36:23.721308+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.1,record_3.wav,baseline,0.8426460441892505,2.34641638225256,0.1,5.0,0.6586538461538461,246.6,217.12038567493116,519.979008,446.0381062699725,0.0,364.6788521669805,,2026-05-22T06:42:28.415437+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.25,record_3.wav,baseline,0.5681892134055229,2.34641638225256,0.25,5.0,0.5326086956521738,248.5,205.06155555555554,516.947968,442.17678051555555,0.0,451.49379324982874,,2026-05-22T06:49:59.931173+00:00,3.11.15,0.9.x,cpu
+wespeaker-resnet152,5.0,0.5,record_3.wav,baseline,0.3202496705008989,2.34641638225256,0.5,5.0,0.48032407407407407,246.8,214.7949771689498,509.968384,437.3145459726028,0.0,439.5612392500043,,2026-05-22T06:57:19.516481+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_1.wav,decay-A,0.17620776345505595,2.5086206896551726,0.5,2.0,0.41993620414673044,192.1,157.95238095238093,610.025472,255.5139413333333,0.0,21.06630820897408,,2026-05-22T07:34:17.599495+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_1.wav,decay-B,0.1951919516953309,2.5603448275862073,0.5,2.0,0.5208695652173914,185.2,155.21304347826086,304.185344,234.69581356521735,0.0,23.087829625001177,,2026-05-22T07:34:40.689176+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_1.wav,hdbscan-on,0.14432679659374106,3.5086206896551726,0.5,2.0,0.4996940024479804,191.6,163.33636363636364,313.884672,241.61484799999997,0.0,22.09424883290194,,2026-05-22T07:35:02.790271+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_1.wav,hdbscan-off,0.13786851598086317,2.5603448275862073,0.5,2.0,0.5614415979157621,190.1,156.21818181818182,318.2592,229.45866472727275,0.0,22.052625166019425,,2026-05-22T07:35:24.851578+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_3.wav,decay-A,0.3702145946877977,2.008695652173913,0.5,2.0,0.36883116883116884,195.1,168.23333333333332,603.357184,321.30935466666665,0.0,12.039611083921045,,2026-05-22T07:36:00.526423+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_3.wav,decay-B,0.26626398325239115,2.008695652173913,0.5,2.0,0.4961180124223602,196.2,169.20909090909092,288.93184,248.82976581818184,0.0,11.033397833118215,,2026-05-22T07:36:11.561465+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_3.wav,hdbscan-on,0.24825611940403866,2.008695652173913,0.5,2.0,0.4916666666666667,195.0,166.77692307692308,294.453248,253.66717046153846,0.0,13.039762375177816,,2026-05-22T07:36:24.602940+00:00,3.11.15,0.9.x,cpu
+pyannote/embedding,2.0,0.5,record_3.wav,hdbscan-off,0.2606297448697966,2.008695652173913,0.5,2.0,0.47987117552334946,193.0,151.34285714285713,280.690688,227.26714514285715,0.0,14.043226375011727,,2026-05-22T07:36:38.648709+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_1.wav,decay-A,0.22507638000267405,2.5086206896551726,0.5,2.0,0.5558712121212122,203.9,186.8892857142857,497.713152,395.50800457142856,0.0,56.19983183313161,,2026-05-22T07:37:35.025406+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_3.wav,decay-A,0.29611833339128885,2.008695652173913,0.5,2.0,0.37592968221771467,203.1,169.86923076923077,412.13952,371.1085226666667,0.0,39.11845145816915,,2026-05-22T07:38:14.147620+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_1.wav,decay-B,0.18739873072022914,2.5603448275862073,0.5,2.0,0.5440909090909092,205.4,187.9561403508772,505.93792,404.358269754386,0.0,57.181794041069224,,2026-05-22T07:39:11.333383+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_3.wav,decay-B,0.24482573741990535,2.008695652173913,0.5,2.0,0.5077777777777778,201.3,181.8285714285714,462.880768,407.2762806857143,0.0,35.10405433294363,,2026-05-22T07:39:46.442551+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_1.wav,hdbscan-on,0.3037923651132233,2.5603448275862073,0.5,2.0,0.8086312118570183,234.0,186.9783333333333,855.441408,402.85989546666667,0.0,60.1942517911084,,2026-05-22T07:40:46.641470+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_3.wav,hdbscan-on,0.2737842662255778,2.008695652173913,0.5,2.0,0.42789968652037613,491.5,189.95999999999998,792.936448,403.18484479999995,0.0,40.10433729086071,,2026-05-22T07:41:26.749138+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_1.wav,hdbscan-off,0.2036681947640831,2.5603448275862073,0.5,2.0,0.5403525046382189,564.7,188.18983050847459,624.082944,387.2960997966101,0.0,59.20112191699445,,2026-05-22T07:42:25.955066+00:00,3.11.15,0.9.x,cpu
+ecapa-tdnn,2.0,0.5,record_3.wav,hdbscan-off,0.20719379825604203,2.008695652173913,0.5,2.0,0.5031512605042017,202.0,183.40571428571425,454.361088,396.6983021714286,0.0,35.121109625091776,,2026-05-22T07:43:01.084249+00:00,3.11.15,0.9.x,cpu
