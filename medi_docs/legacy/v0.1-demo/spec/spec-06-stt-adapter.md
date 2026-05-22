@@ -4,12 +4,13 @@ type: spec
 title: STT streaming 어댑터 계약 — ElevenLabs streaming WS 1차 구현
 status: draft
 created: 2026-05-20
-updated: 2026-05-20
+updated: 2026-05-21
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[adr-02-pattern-b-fanout-chain]]"
+  - "[[adr-10-stt-driven-sequential-chain]]"
   - "[[planning-03-demo-v04]]"
-tags: [spec, stt, elevenlabs, pattern-b, interface, demo, streaming]
+tags: [spec, stt, elevenlabs, interface, demo, streaming, plan-006]
 ---
 
 # STT streaming 어댑터 계약 — ElevenLabs streaming WS 1차 구현
@@ -185,6 +186,31 @@ integration 테스트는 `ELEVENLABS_API_KEY` 환경변수 존재 확인 후 ski
 > 근거: `spec-07 §4` UI 요구사항 — "우-상 STT 자막: `is_final=false` 이면 partial 갱신, `true` 이면 확정". partial 을 실시간 표시해야 UX 가 자연스러움. `Transcript.is_final` 로 구분 가능하므로 소비자 선택권 보장.
 >
 > **구현 반영**: `server/stt/elevenlabs.py` `_parse_message()` — `partial_transcript` → `is_final=False`, `committed_transcript_with_timestamps` → `is_final=True` 둘 다 yield.
+
+---
+
+---
+
+## §OQ-06-3 — commit_strategy 전환 결정 (PLAN-006)
+
+> **근거**: [[adr-10-stt-driven-sequential-chain]] — STT-driven Sequential Chain 에서 STT phrase boundary 가 SSOT. ElevenLabs 가 자동 phrase 검출 + final emit 을 담당해야 함.
+
+### 결정: `commit_strategy` `manual` → `vad` 전환
+
+PLAN-004-T-008 에서 `commit_strategy=manual` 로 구현됨. PLAN-006 Chain 구조에서 phrase boundary 를 서버가 아닌 STT 가 자동 검출해야 하므로 `vad` 전환 결정.
+
+**검증 필요 사항 (T-003 워커)**:
+- ElevenLabs streaming STT WS 에서 `commit_strategy=vad` 파라미터 실제 지원 여부
+- 한국어 회의 도메인에서 vad phrase boundary 정확도 측정
+
+**fallback 정책 (vad 미지원 또는 부정확 시)**:
+
+| 옵션 | 설명 | 적용 조건 |
+|---|---|---|
+| server VAD layer | 서버가 PCM silence threshold 검출 → manual commit 트리거 | ElevenLabs vad 미지원 |
+| silence threshold fallback | RMS 에너지 기반 silence 검출 (~300ms 이상 무음) → flush | vad 존재하나 boundary 부정확 |
+
+**박제 단계는 결정만** — 구체 구현 (파라미터명 / threshold 값 / VAD 알고리즘 선택) 은 T-003 워커 결정.
 
 ---
 

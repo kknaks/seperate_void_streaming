@@ -2,12 +2,13 @@
 id: adr-02
 type: adr
 title: Pattern B 채택 — 엔진 출력 chain + 사용처 tee split fan-out
-status: accepted
+status: partially-superseded
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-21
 sources:
   - "[[planning-02-speaker-engine]]"
-tags: [adr, decision, speaker-engine, integration-pattern, event-model]
+superseded_by: "[[adr-10-stt-driven-sequential-chain]]"
+tags: [adr, decision, speaker-engine, integration-pattern, event-model, partially-superseded]
 ---
 
 # Pattern B 채택 — 엔진 출력 chain + 사용처 tee split fan-out
@@ -74,3 +75,40 @@ async def tee():
 - [[adr-01-diart-wrapping-strategy]] — diart blocks 가 이벤트 생성의 기반
 - [[adr-03-storage-via-env-url]] — SpeakerStore 가 stored/registered 라벨 판별에 사용
 - [[adr-04-manual-persist-flow]] — 세션 종료 후 finalize → 수동 persist 흐름
+
+---
+
+## Partially Superseded — 2026-05-21
+
+### 부분 폐기 결정: [[adr-10-stt-driven-sequential-chain]] 채택
+
+**결정자**: admin (kknaks), PLAN-006-T-001
+
+**폐기 범위 (PLAN-006-T-001)**:
+
+1. **PLAN-005 실측** (2026-05-20, AMI 4 세션 avg):
+   - streaming raw DER **19.40%** ≈ finalize DER **19.73%**
+   - adr-09 서버 live grouping layer 추가에도 매핑 품질 미개선
+
+2. **본질적 boundary 불일치 확인**:
+   - engine boundary = 화자 변경 시점 (sliding window 기준)
+   - STT boundary = phrase 끝 (ElevenLabs committed transcript 기준)
+   - **두 boundary 는 서로 다른 이벤트 축** — 시간 매칭 layer 로는 본질 해결 불가
+   - 시연 결과: "엄청 느림" / 긴 발화 (~30초) 한 줄 누적
+
+3. **대안 검토 및 거부**: 매핑 안정화 layer 강화 / STT-engine sync barrier — 모두 boundary 불일치 본질 미해결
+
+**대체**: [[adr-10-stt-driven-sequential-chain]] — STT phrase boundary 를 SSOT 로 삼고, engine 이 STT 의 phrase PCM slice 를 receive → 화자 라벨 반환.
+
+### 부분 부활 (PLAN-006-T-015 Amendment)
+
+**admin smoke v4 측정 (2026-05-21)**:
+- `engine.stream()` 호출 0회 → `_clusterer.centers = None` → `identify_phrase` 가 `_phrase_centroids` (단발) 만 사용 → 2명 대화에서 A/B/C/D/E 5개 라벨 split
+
+**부활 범위**: PCM fan-out (학습 채널 only). engine.stream 에 PCM 을 계속 공급하여 4 컴포넌트 (Online/Adaptive/Final/Identifier) 가 학습 누적 → identify_phrase 매칭 정확도 향상.
+
+**폐기 유지**: engine.stream 의 segment 출력 → UI emit. 라이브 매핑 wire 는 `labeled_phrase` 단일 유지 (adr-10 §Decision 변경 없음).
+
+**참조**: [[adr-10-stt-driven-sequential-chain]] §Amendment / [[spec-04-clustering-algorithms]] §9-5
+
+**본문 보존**: 이 문서 (Pattern B 설계) 는 legacy 자산으로 유지. 향후 v0.2+ 재검토 시 참조 가능.

@@ -4,7 +4,7 @@ type: spec
 title: Clustering Algorithms 정책 명세 — Online / AdaptiveRecluster / FinalRecluster + 컴포넌트 책임 경계
 status: ready
 created: 2026-05-17
-updated: 2026-05-19
+updated: 2026-05-21
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[spec-01-speaker-engine-api]]"
@@ -13,8 +13,9 @@ sources:
   - "[[adr-01-diart-wrapping-strategy]]"
   - "[[adr-05-ws-race-defaults]]"
   - "[[adr-08-final-recluster-strategy]]"
+  - "[[adr-10-stt-driven-sequential-chain]]"
   - "[[reference-08-diart-streaming-structure]]"
-tags: [spec, speaker-engine, clustering, online, adaptive, hdbscan, ready]
+tags: [spec, speaker-engine, clustering, online, adaptive, hdbscan, ready, plan-006]
 ---
 
 # Clustering Algorithms 정책 명세
@@ -273,6 +274,121 @@ yield LabelChange* (reason="recluster")
 - [[adr-01-diart-wrapping-strategy]] — diart 차용 정책
 - [[adr-05-ws-race-defaults]] — R2 (세션 격리) / R3 (inline recluster) / R4 (drain timeout 5s)
 - [[adr-08-final-recluster-strategy]] — FinalRecluster architectural 결정 (HDBSCAN + Hungarian)
+- [[adr-10-stt-driven-sequential-chain]] — Sequential Chain 채택 + identify_phrase 신규 인터페이스 결정 근거
 - [[reference-07-pyannote-embedding-code]] — L2 정규화 책임 분담 근거
 - [[reference-08-diart-streaming-structure]] §5 — diart `OnlineSpeakerClustering` 본문
 - [[reference-03-pyannote-audio-overview]] §77 — `hdbscan` / `scipy` 의존성 출처
+
+---
+
+## §9 Phrase-level Identification (PLAN-006)
+
+> **근거**: [[adr-10-stt-driven-sequential-chain]] — STT-driven Sequential Chain 채택 후 신규 인터페이스 요구사항.
+
+### 9-1. 인터페이스 의도
+
+STT 가 phrase boundary 를 확정하면, 서버가 해당 phrase 구간의 PCM slice 를 추출하여 `SpeakerEngine` 에 전달한다. `SpeakerEngine` 은 해당 slice 에 대한 화자 라벨 1건을 반환한다.
+
+**인터페이스 의도 (시그니처·메서드명·파일경로는 T-002 워커 결정)**:
+
+```
+입력: phrase 구간 PCM slice (bytes, PCM16 16kHz mono)
+출력: 화자 라벨 (str)
+  - 신규 화자: "auto:A" / "auto:B" / ...
+  - 등록 화자 (registered_speakers): "registered:이름"
+  - 영속 화자 (stored): "stored:이름"
+```
+
+### 9-2. 내부 흐름 (의도)
+
+기존 컴포넌트 재사용 — **clustering / embedding 알고리즘 변경 0**:
+
+```
+pcm_slice (phrase 구간)
+  ↓
+DiartAdapter → embedding 추출 (§2-1 process_window 로직 재사용)
+  ↓
+[L2 normalize] (identifier 책임, §4-2 동일)
+  ↓
+Identifier.match() → registered / stored / auto 3-tier 매칭 (§2-1 동일)
+  ↓
+라벨 반환
+```
+
+`engine.stream()` / `engine.finalize()` **본체 변경 X** — V-01 closed 자산 보존. phrase-level identify 는 별도 진입점으로 추가.
+
+### 9-3. 짧은 phrase 안정성 대응 옵션
+
+pyannote embedding 권장 길이 3~5초. 짧은 응답 ("네", ~1~2초) 는 embedding noise 위험.
+
+**구현 선택은 T-002 워커**. 아래 옵션만 박제:
+
+| 옵션 | 설명 | trade-off |
+|---|---|---|
+| (a) 직전 phrase 화자 candidate 우선 | turn-taking 가정 — 짧은 phrase 는 직전 화자로 귀속 | 대화 교환 시 오분류 가능 |
+| (b) min duration threshold | 짧으면 "unknown" 또는 직전 화자 반환, identify skip | 짧은 발화 라벨링 X |
+| (c) phrase 누적 후 identify | 일정 길이 (예: 3초) 도달 후 일괄 identify | 지연 증가 |
+
+### 9-4. Out of scope (본 섹션)
+
+- 구체 메서드 시그니처 / 클래스명 / 파일 위치 — T-002 결정
+- embedding 추출 알고리즘 변경 — V-01 closed 자산 그대로
+- phrase 누적 buffer 구현 방식 — T-002 결정
+
+### 9-5. 사용처 책임 — Amendment (2026-05-21)
+
+> **근거**: admin smoke v4 측정 (PLAN-006-T-015) — [[adr-10-stt-driven-sequential-chain]] §Amendment 참조.
+
+**학습 채널 전제**: `identify_phrase` 는 chain 의 단독 진입점이 아니다. 사용처 (`audio_ws`) 가 `engine.stream` 에 PCM fan-out 으로 학습을 누적한 후, `identify_phrase` 가 그 학습된 `_clusterer.centers` 와 매칭하는 것이 **정상 흐름**.
+
+**사용처 책임**: PCM 을 `stt.feed` + `engine.stream` 양쪽에 fan-out 해야 4 컴포넌트 (OnlineSpeakerClusterer / AdaptiveReclusterScheduler / FinalReclusterer / SpeakerIdentifier) 가 정상 작동한다.
+
+```
+PCM 입력
+  ├─→ stt.feed(chunk)           # STT 채널
+  └─→ engine.stream(chunks)     # 학습 채널 (segment 출력 server 소비, UI emit X)
+
+phrase 확정 시
+  → engine.identify_phrase(pcm_slice)  # 학습된 _clusterer.centers 와 매칭
+```
+
+**단독 호출 한계**: 사용처가 `engine.stream` 을 호출하지 않고 `identify_phrase` 만 호출하면 `_phrase_centroids` 단발 매칭만 수행 — 정확도 한계 있음 (admin smoke v4: 2명 대화 → 5개 라벨 split 관측).
+
+### 9-6. 사용처 책임 amend — diart segment lookup (Amendment v2, 2026-05-21)
+
+> **근거**: admin smoke v6~v10 측정 (PLAN-006-T-025/T-026) — [[adr-10-stt-driven-sequential-chain]] §Amendment v2 참조.
+
+**채택: diart segment label lookup**:
+
+사용처 (`audio_ws`) 는 `engine.stream` 이 yield 하는 `SpeakerSegment` 를 소비하여 **server 측 segment label map** 을 유지하고, STT phrase 확정 시 time-window overlap 으로 dominant speaker_id 를 결정해야 한다.
+
+```
+# 사용처 책임 — segment label map 유지
+async for segment in engine.stream(pcm_chunks):
+    segment_map.add(segment)          # (t_start, t_end, speaker_id) 누적
+
+# STT phrase 확정 시 — overlap lookup
+dominant_label = segment_map.dominant(phrase_t_start, phrase_t_end)
+if dominant_label is None:
+    dominant_label = engine.identify_phrase(pcm_slice)   # fallback only
+```
+
+**`identify_phrase` 호출 지점**: segment 미도착 phrase (세션 초기 구간) 에서만 fallback 으로 호출 권장. 주요 경로에서 직접 호출 제거.
+
+**이유**: §9-7 의 phrase-level embedding 한계로 인해 주요 경로에서 `identify_phrase` 단독 사용 시 동일 화자 복수 라벨 split 발생. diart segment 의 sliding window context 기반 화자 결정이 신뢰도 높음.
+
+### 9-7. identify_phrase 한계 박제 (Amendment v2, 2026-05-21)
+
+> **근거**: admin smoke v6~v10 측정 + advisor 분석 (PLAN-006-T-025/T-026) — [[adr-10-stt-driven-sequential-chain]] §Amendment v2 참조.
+
+**한계**: conversational duration (0.5~3s) 의 단일 phrase embedding 은 **화자 분리 SSOT 로 부적합**.
+
+| 관찰 | 원인 |
+|---|---|
+| 동일 화자 연속 phrase → A/B/C 복수 라벨 split | duration 별 embedding cluster 형성 (화자 ID ≠ 강한 신호) |
+| threshold/weight/gate knob 7개 조정 무효 | phrase embedding 분포 자체의 화자 분리 부적합 — knob 으로 보완 불가 |
+| pyannote embedding 권장 길이 (3~5s) 미달 | 짧은 phrase (~1~2s) embedding noise 증폭 |
+
+**사용 영역**: fallback (segment 미도착 초기 구간) + 등록 화자 (registered) 매칭 시 보조 신호.
+
+**주요 경로 배제**: §9-6 의 diart segment label lookup 이 주요 경로. `identify_phrase` 단독 호출로 라이브 매핑 SSOT 결정 비권장.

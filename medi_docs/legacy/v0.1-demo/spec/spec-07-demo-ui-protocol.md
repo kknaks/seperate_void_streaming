@@ -4,13 +4,14 @@ type: spec
 title: 데모 UI WS 프로토콜 — json 이벤트 스키마 + 클라이언트 책임
 status: draft
 created: 2026-05-20
-updated: 2026-05-20
+updated: 2026-05-21
 sources:
   - "[[planning-02-speaker-engine]]"
   - "[[planning-03-demo-v04]]"
   - "[[spec-06-stt-adapter]]"
   - "[[adr-09-server-live-grouping]]"
-tags: [spec, websocket, json-schema, demo-ui, protocol, pcm16, stt, elevenlabs, live-grouping]
+  - "[[adr-10-stt-driven-sequential-chain]]"
+tags: [spec, websocket, json-schema, demo-ui, protocol, pcm16, stt, elevenlabs, plan-006]
 ---
 
 # 데모 UI WS 프로토콜 — json 이벤트 스키마 + 클라이언트 책임
@@ -31,7 +32,7 @@ ws://host/audio/{visit_id}
 |---|---|---|
 | 클라이언트 → 서버 | 바이너리 | PCM 16-bit signed LE, 16kHz, mono |
 | 클라이언트 → 서버 | 텍스트 JSON | `{"type":"eof"}` — 종료 시그널 (선택, 권장) |
-| 서버 → 클라이언트 | 텍스트 JSON | 7종 이벤트 (`segment`, `stt`, `labeled_word`, `final_grouped`, `relabel`, `done`, `error`) |
+| 서버 → 클라이언트 | 텍스트 JSON | 이벤트 목록 — §3 참조. 유효: `stt`, `labeled_phrase`, `final_grouped`, `done`, `error`. 폐기(PLAN-006): `segment`, `labeled_word`, `relabel` |
 
 `{visit_id}` — 세션 식별자 (임의 문자열, URL-safe). 현재 데모는 영속화하지 않음 (`memory://` 스토어).
 
@@ -60,11 +61,12 @@ ws://host/audio/{visit_id}
 
 ## §3 서버 → 클라이언트 (JSON 이벤트)
 
-### segment (신규 — v0.1.0)
+### segment _(폐기 — PLAN-006)_
 
-화자 분리 단위 이벤트. `SpeakerSegment` 직접 직렬화. 서버 live grouping layer 가 이 이벤트를 trigger 로 삼아 `labeled_word` 를 emit 한다.
-
-> **UI 직접 표시 폐기 (v0.1.1)**: 클라이언트는 `segment` 이벤트를 우-중 영역에 직접 표시하지 않는다. 우-중은 `labeled_word` 이벤트만 사용. `segment` 는 디버깅 목적으로 수신 가능하나 UI 렌더 대상 X.
+> **폐기 (2026-05-21, PLAN-006)**: STT-driven Sequential Chain 전환으로 `segment` 이벤트 폐기.
+> Chain 구조에서 engine 은 phrase 단위 라벨만 반환하며 `SpeakerSegment` 를 emit 하지 않는다.
+> live grouping layer (adr-09) 도 폐기 — `labeled_phrase` 이벤트로 대체.
+> 변경 사유: [[adr-10-stt-driven-sequential-chain]] §Decision, [[plans/PLAN-006]] §폐기/유지 정책.
 
 ```json
 {
@@ -108,9 +110,12 @@ ElevenLabs streaming STT 결과 이벤트. 화자 라벨 없음 — 클라이언
 | `text` | string | 한국어 텍스트 | 인식 텍스트. `is_final=false` 이면 partial (갱신 가능) |
 | `is_final` | boolean | | `false`: partial (실시간 갱신), `true`: 확정 텍스트 |
 
-### labeled_word (신규 — v0.1.1)
+### labeled_word _(폐기 — PLAN-006)_
 
-서버 live grouping layer 가 STT 단어에 화자 라벨을 attach 한 뒤 emit. `stt` 이벤트 수신 시점보다 1~2초 지연 (segment 도착 후 매핑). 우-중 매핑 영역에 사용.
+> **폐기 (2026-05-21, PLAN-006)**: STT-driven Sequential Chain 전환으로 `labeled_word` 이벤트 폐기.
+> Chain 은 phrase 단위로 라벨을 반환하므로 단어별 attach 불필요.
+> `labeled_phrase` 이벤트로 대체.
+> 변경 사유: [[adr-10-stt-driven-sequential-chain]] §Decision, [[plans/PLAN-006]] §폐기/유지 정책.
 
 ```json
 {
@@ -132,9 +137,32 @@ ElevenLabs streaming STT 결과 이벤트. 화자 라벨 없음 — 클라이언
 | `text` | string | 한국어 텍스트 | 인식 단어 (확정 텍스트만 emit — `is_final=true` 기준) |
 | `segment_id` | string | UUID4 형식 | 매핑 출처 `segment.utterance_id` — relabel 소급 갱신 시 기준 |
 
+### labeled_phrase (신규 — PLAN-006)
+
+STT phrase boundary 확정(final) 후 engine 이 해당 phrase PCM slice 를 receive → 화자 라벨 반환. 서버가 phrase 단위 라벨 + 텍스트를 emit. 우-중 매핑 영역에 사용.
+
+```json
+{
+  "type": "labeled_phrase",
+  "label": "auto:A",
+  "t_start": 0.0,
+  "t_end": 0.0,
+  "text": "이번 발화 내용 전체"
+}
+```
+
+| 필드 | 타입 | 단위 / 범위 | 설명 |
+|---|---|---|---|
+| `type` | string | `"labeled_phrase"` | 고정값 |
+| `label` | string | `"registered:이름"` / `"stored:이름"` / `"auto:A"` | engine 이 반환한 화자 라벨 |
+| `t_start` | float | 초, session-relative | phrase 시작 시각 (STT committed transcript timestamp) |
+| `t_end` | float | 초, session-relative | phrase 종료 시각 |
+| `text` | string | 한국어 텍스트 | phrase 확정 텍스트 (STT final 기준) |
+
 클라이언트 처리 지침:
 - 같은 `label` 이 연속이면 한 줄에 concat.
-- `relabel` 이벤트 수신 시 `segment_id` 기준으로 해당 단어들의 라벨 소급 갱신.
+- 라벨 소급 변경(relabel) 없음 — phrase 결정 시점에 라벨 확정.
+- `stt` partial 이벤트로 실시간 자막 표시, `labeled_phrase` 도착 시 우-중에 확정 라벨 표시.
 
 ### final_grouped (신규 — v0.1.1)
 
@@ -171,9 +199,11 @@ ElevenLabs streaming STT 결과 이벤트. 화자 라벨 없음 — 클라이언
 
 > **폐기 (2026-05-20)**: `utterance` 는 STT batch `flush_window` 방식의 종속 모델. `segment` + `stt` 분리 이벤트로 대체. 구현 코드 제거는 다음 stt-adapter 워커 task.
 
-### relabel
+### relabel _(폐기 — PLAN-006)_
 
-클러스터 재계산 후 화자 라벨 변경 이벤트. `LabelChange` 기반.
+> **폐기 (2026-05-21, PLAN-006)**: STT-driven Sequential Chain 전환으로 `relabel` 이벤트 폐기.
+> phrase 결정 시점에 화자 라벨이 확정 → 소급 변경 이벤트 불필요.
+> 변경 사유: [[adr-10-stt-driven-sequential-chain]] §Decision, [[plans/PLAN-006]] §폐기/유지 정책.
 
 anchor: `fastapi_ws_demo.py:80-90`
 
@@ -248,12 +278,17 @@ anchor: `fastapi_ws_demo.py:114`
 
 ## §4 라이브 UI 요구사항
 
-3단계 표시 모델 (v0.1.1, adr-09):
+### PLAN-006 이벤트 모델 (adr-10)
+
+> **변경 (2026-05-21, PLAN-006)**: `labeled_word` / `segment` / `relabel` 폐기 → `labeled_phrase` 신규 채택.
+> 변경 사유: [[adr-10-stt-driven-sequential-chain]].
+
+2단계 표시 모델 (PLAN-006):
 
 | 단계 | 이벤트 | UI 영역 | 지연 | 상세 |
 |---|---|---|---|---|
 | 1 (즉시) | `stt` | 우-상 STT 자막 | 0~수백ms | `is_final=false` 이면 partial 갱신, `true` 이면 확정. 라벨 없음 |
-| 2 (라벨 attach) | `labeled_word` | 우-중 매핑 결과 | 1~2초 | `[label] text` 형태로 누적. 같은 label 연속이면 한 줄 concat. `relabel` 수신 시 `segment_id` 기준 소급 갱신 |
+| 2 (phrase 확정) | `labeled_phrase` | 우-중 매핑 결과 | phrase 길이 + 처리 (~2~5초) | `[label] text` 형태로 누적. 같은 label 연속이면 한 줄 concat. 소급 갱신 없음 — phrase 결정 시점에 라벨 확정 |
 | 3 (done 후) | `final_grouped` | 우-하 최종 결과 | done 이후 | 수신 즉시 우-하 wipe + `[화자] 전체 텍스트` 한 줄 단위 재구성. done 전까지는 progress 표시 |
 
 | 기능 | 상세 |
@@ -261,9 +296,9 @@ anchor: `fastapi_ws_demo.py:114`
 | 파일 업로드 인풋 | `<input type="file" accept=".wav,.mp3,.m4a">` |
 | 재생 컨트롤 | `<audio>` 재생 **master clock — 필수**. `play` → WS 송신 시작 / `pause` → WS 송신 일시정지 / `ended` → `eof` 송신 + done 수신 대기 → WS close (§5 참조) |
 | 우-상 STT 자막 | `stt` 이벤트 — `is_final=false` 이면 partial 갱신, `true` 이면 확정. 라벨 없음 |
-| 우-중 매핑 결과 | `labeled_word` 이벤트 — `[label] text` 누적, 같은 label 연속 → 한 줄 concat. `segment` 직접 사용 X |
+| 우-중 매핑 결과 | `labeled_phrase` 이벤트 — `[label] text` 누적, 같은 label 연속 → 한 줄 concat. `segment` / `labeled_word` 사용 X (폐기) |
 | 우-하 최종 결과 | `final_grouped` 이벤트 — 수신 시 wipe 후 utterance 단위 `[화자] 전체 텍스트` 재구성 |
-| relabel 소급 갱신 | `relabel` 이벤트 수신 시 우-중 `labeled_word` 의 `segment_id` 기준 라벨 갱신 |
+| ~~relabel 소급 갱신~~ | **폐기 (PLAN-006)** — phrase 결정 시점에 라벨 확정, 소급 변경 없음 |
 | 종료 시 candidates 요약 | `done` 이벤트 수신 시 화자별 발화 수 + 총 시간 표 표시 |
 | 에러 표시 | `error` 이벤트 또는 WS 끊김 시 사용자에게 메시지 표시 |
 
