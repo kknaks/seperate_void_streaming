@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phase 2b — Legacy Scheduler Comparison (8 variants)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f7fa; color: #333; }
+    header { background: #1a202c; color: #fff; padding: 1.5rem 2rem; }
+    header h1 { font-size: 1.4rem; font-weight: 600; }
+    header small { color: #a0aec0; font-size: 0.8rem; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem; }
+    section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1);
+              margin-bottom: 1.5rem; padding: 1.5rem; }
+    h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: .5rem; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 1rem; }
+    .summary-card { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; }
+    .summary-card h3 { font-size: .8rem; color: #718096; text-transform: uppercase; letter-spacing: .05em; }
+    .summary-card .val { font-size: 1.4rem; font-weight: 700; color: #2d3748; }
+    .summary-card .sub { font-size: .8rem; color: #4a5568; margin-top: .25rem; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .chart-wrap { position: relative; height: 320px; }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    thead th { background: #edf2f7; position: sticky; top: 0; padding: .5rem .75rem;
+                text-align: left; cursor: pointer; user-select: none; white-space: nowrap; }
+    thead th:hover { background: #e2e8f0; }
+    tbody td { padding: .45rem .75rem; border-bottom: 1px solid #f0f0f0; }
+    tbody tr:hover { background: #f7fafc; }
+    tr.error-row td { background: #fff5f5; color: #c53030; }
+    .badge { display: inline-block; padding: .15rem .5rem; border-radius: 4px;
+             font-size: .7rem; font-weight: 600; }
+    .badge-ok { background: #c6f6d5; color: #22543d; }
+    .badge-err { background: #fed7d7; color: #822727; }
+    .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+    .der-good { color: #276749; font-weight: 600; }
+    .der-bad  { color: #c53030; }
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Phase 2b — Legacy Scheduler Comparison (8 variants)</h1>
+  <small>Generated 2026-05-22 08:16 UTC · 32 rows · 0 errors</small>
+</header>
+<div class="container">
+
+  <!-- 1. Summary -->
+  <section id="summary">
+    <h2>Summary</h2>
+    
+    <div class="summary-grid">
+      <div class="summary-card">
+        <h3>Best Overall (DER)</h3>
+        <div class="val">0.125</div>
+        <div class="sub">pyannote/embedding · w=2.0s · s=0.5s<br>record_1.wav</div>
+      </div>
+      
+      <div class="summary-card">
+        <h3>ecapa-tdnn</h3>
+        <div class="val">0.145</div>
+        <div class="sub">w=2.0s · s=0.5s · record_1.wav</div>
+      </div>
+      
+      <div class="summary-card">
+        <h3>pyannote/embedding</h3>
+        <div class="val">0.125</div>
+        <div class="sub">w=2.0s · s=0.5s · record_1.wav</div>
+      </div>
+      
+    </div>
+    
+    
+  </section>
+
+  <!-- 2. Charts -->
+  <section id="charts">
+    <h2>Charts</h2>
+    <div class="charts-grid">
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">Scheduler vs DER (avg per scheduler)</h3>
+        <div class="chart-wrap"><canvas id="chart-scheduler-bar"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">Scheduler DER delta vs baseline (↓ = improvement)</h3>
+        <div class="chart-wrap"><canvas id="chart-scheduler-delta"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">DER vs Labeling Latency (p50)</h3>
+        <div class="chart-wrap"><canvas id="chart-der-latency"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">DER vs CPU avg %</h3>
+        <div class="chart-wrap"><canvas id="chart-der-cpu"></canvas></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;margin-bottom:.5rem;">Window Size vs DER (avg per window)</h3>
+        <div class="chart-wrap"><canvas id="chart-window-der"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Table -->
+  <section id="results">
+    <h2>Results Table <small style="font-weight:normal;color:#718096;">(click header to sort)</small></h2>
+    <div class="table-wrap">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Embedding</th>
+            <th onclick="sortTable(1)">Window</th>
+            <th onclick="sortTable(2)">Step</th>
+            <th onclick="sortTable(3)">Scheduler</th>
+            <th onclick="sortTable(4)">Sample</th>
+            <th onclick="sortTable(5)">DER ↑best</th>
+            <th onclick="sortTable(6)">Lat p50 (s)</th>
+            <th onclick="sortTable(7)">Lat p95 (s)</th>
+            <th onclick="sortTable(8)">Consistency</th>
+            <th onclick="sortTable(9)">CPU peak%</th>
+            <th onclick="sortTable(10)">RAM peak MB</th>
+            <th onclick="sortTable(11)">Cold-load (s)</th>
+            <th onclick="sortTable(12)">Runtime (s)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>baseline</td>
+            <td>record_1.wav</td>
+            <td class="der-good">
+              0.138
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.561</td>
+            <td>202.5</td>
+            <td>489</td>
+            <td>0.00</td>
+            <td>18.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>baseline</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.204
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.540</td>
+            <td>212.0</td>
+            <td>426</td>
+            <td>0.00</td>
+            <td>58.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>baseline</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.261
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.480</td>
+            <td>189.0</td>
+            <td>288</td>
+            <td>0.00</td>
+            <td>14.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>baseline</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.207
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.503</td>
+            <td>193.2</td>
+            <td>435</td>
+            <td>0.00</td>
+            <td>33.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-A</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.176
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.420</td>
+            <td>192.1</td>
+            <td>610</td>
+            <td>0.00</td>
+            <td>21.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-B</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.195
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.521</td>
+            <td>185.2</td>
+            <td>304</td>
+            <td>0.00</td>
+            <td>23.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-on</td>
+            <td>record_1.wav</td>
+            <td class="der-good">
+              0.144
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.500</td>
+            <td>191.6</td>
+            <td>314</td>
+            <td>0.00</td>
+            <td>22.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-off</td>
+            <td>record_1.wav</td>
+            <td class="der-good">
+              0.138
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.561</td>
+            <td>190.1</td>
+            <td>318</td>
+            <td>0.00</td>
+            <td>22.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-A</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.370
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.369</td>
+            <td>195.1</td>
+            <td>603</td>
+            <td>0.00</td>
+            <td>12.0</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-B</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.266
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.496</td>
+            <td>196.2</td>
+            <td>289</td>
+            <td>0.00</td>
+            <td>11.0</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-on</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.248
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.492</td>
+            <td>195.0</td>
+            <td>294</td>
+            <td>0.00</td>
+            <td>13.0</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-off</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.261
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.480</td>
+            <td>193.0</td>
+            <td>281</td>
+            <td>0.00</td>
+            <td>14.0</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-A</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.225
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.556</td>
+            <td>203.9</td>
+            <td>498</td>
+            <td>0.00</td>
+            <td>56.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-A</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.296
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.376</td>
+            <td>203.1</td>
+            <td>412</td>
+            <td>0.00</td>
+            <td>39.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-B</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.187
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.544</td>
+            <td>205.4</td>
+            <td>506</td>
+            <td>0.00</td>
+            <td>57.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>decay-B</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.245
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.508</td>
+            <td>201.3</td>
+            <td>463</td>
+            <td>0.00</td>
+            <td>35.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-on</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.304
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.809</td>
+            <td>234.0</td>
+            <td>855</td>
+            <td>0.00</td>
+            <td>60.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-on</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.274
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.428</td>
+            <td>491.5</td>
+            <td>793</td>
+            <td>0.00</td>
+            <td>40.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-off</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.204
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.540</td>
+            <td>564.7</td>
+            <td>624</td>
+            <td>0.00</td>
+            <td>59.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>hdbscan-off</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.207
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.503</td>
+            <td>202.0</td>
+            <td>454</td>
+            <td>0.00</td>
+            <td>35.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-adaptive</td>
+            <td>record_1.wav</td>
+            <td class="der-good">
+              0.125
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.572</td>
+            <td>200.9</td>
+            <td>768</td>
+            <td>0.77</td>
+            <td>19.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-adaptive</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.264
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.489</td>
+            <td>191.6</td>
+            <td>351</td>
+            <td>0.00</td>
+            <td>13.0</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-final</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.156
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.418</td>
+            <td>196.0</td>
+            <td>434</td>
+            <td>0.00</td>
+            <td>23.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-final</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.262
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.368</td>
+            <td>193.3</td>
+            <td>452</td>
+            <td>0.00</td>
+            <td>14.0</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-both</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.156
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.418</td>
+            <td>217.7</td>
+            <td>453</td>
+            <td>0.00</td>
+            <td>24.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>pyannote/embedding</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-both</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.262
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.368</td>
+            <td>187.4</td>
+            <td>299</td>
+            <td>0.00</td>
+            <td>12.0</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-adaptive</td>
+            <td>record_1.wav</td>
+            <td class="der-good">
+              0.145
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.552</td>
+            <td>404.8</td>
+            <td>743</td>
+            <td>0.00</td>
+            <td>64.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-adaptive</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.260
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.512</td>
+            <td>200.7</td>
+            <td>623</td>
+            <td>0.00</td>
+            <td>38.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-final</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.307
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.671</td>
+            <td>244.6</td>
+            <td>783</td>
+            <td>0.00</td>
+            <td>67.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-final</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.304
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.295</td>
+            <td>578.2</td>
+            <td>647</td>
+            <td>0.00</td>
+            <td>41.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-both</td>
+            <td>record_1.wav</td>
+            <td class="der-bad">
+              0.307
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.671</td>
+            <td>235.9</td>
+            <td>998</td>
+            <td>0.00</td>
+            <td>66.2</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+          <tr class="">
+            <td>ecapa-tdnn</td>
+            <td>2.0</td>
+            <td>0.5</td>
+            <td>legacy-both</td>
+            <td>record_3.wav</td>
+            <td class="der-bad">
+              0.304
+            </td>
+            <td>0.50</td>
+            <td>2.00</td>
+            <td>0.295</td>
+            <td>616.0</td>
+            <td>792</td>
+            <td>0.00</td>
+            <td>38.1</td>
+            <td>
+              
+                <span class="badge badge-ok">OK</span>
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const chartData = {"der_latency": [{"label": "ecapa-tdnn", "data": [{"x": 0.5, "y": 0.2036681947640831, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.20719379825604203, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.22507638000267405, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.29611833339128885, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.18739873072022914, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.24482573741990535, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.3037923651132233, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.2737842662255778, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.2036681947640831, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.20719379825604203, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.14490187852928643, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.25996782484280995, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.30712035627289824, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.3039326998107864, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.30712035627289824, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.3039326998107864, "label": "record_3.wav w=2.0 s=0.5"}], "backgroundColor": "rgba(54,162,235,0.8)"}, {"label": "pyannote/embedding", "data": [{"x": 0.5, "y": 0.13786851598086317, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.2606297448697966, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.17620776345505595, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.1951919516953309, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.14432679659374106, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.13786851598086317, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.3702145946877977, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.26626398325239115, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.24825611940403866, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.2606297448697966, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.12457800011220518, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.26429950875401736, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.15584704288978093, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.26159643811090594, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.15584704288978093, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 0.5, "y": 0.26159643811090594, "label": "record_3.wav w=2.0 s=0.5"}], "backgroundColor": "rgba(255,99,132,0.8)"}], "der_cpu": [{"label": "ecapa-tdnn", "data": [{"x": 171.6379310344828, "y": 0.2036681947640831, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 178.93939393939394, "y": 0.20719379825604203, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 186.8892857142857, "y": 0.22507638000267405, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 169.86923076923077, "y": 0.29611833339128885, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 187.9561403508772, "y": 0.18739873072022914, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 181.8285714285714, "y": 0.24482573741990535, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 186.9783333333333, "y": 0.3037923651132233, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 189.95999999999998, "y": 0.2737842662255778, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 188.18983050847459, "y": 0.2036681947640831, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 183.40571428571425, "y": 0.20719379825604203, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 182.93906249999998, "y": 0.14490187852928643, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 180.80526315789476, "y": 0.25996782484280995, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 171.8044776119403, "y": 0.30712035627289824, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 185.6829268292683, "y": 0.3039326998107864, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 174.3818181818182, "y": 0.30712035627289824, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 197.40526315789475, "y": 0.3039326998107864, "label": "record_3.wav w=2.0 s=0.5"}], "backgroundColor": "rgba(54,162,235,0.8)"}, {"label": "pyannote/embedding", "data": [{"x": 180.01111111111112, "y": 0.13786851598086317, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 145.0142857142857, "y": 0.2606297448697966, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 157.95238095238093, "y": 0.17620776345505595, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 155.21304347826086, "y": 0.1951919516953309, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 163.33636363636364, "y": 0.14432679659374106, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 156.21818181818182, "y": 0.13786851598086317, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 168.23333333333332, "y": 0.3702145946877977, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 169.20909090909092, "y": 0.26626398325239115, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 166.77692307692308, "y": 0.24825611940403866, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 151.34285714285713, "y": 0.2606297448697966, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 177.4842105263158, "y": 0.12457800011220518, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 159.84615384615384, "y": 0.26429950875401736, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 155.67391304347825, "y": 0.15584704288978093, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 157.22857142857146, "y": 0.26159643811090594, "label": "record_3.wav w=2.0 s=0.5"}, {"x": 148.40416666666667, "y": 0.15584704288978093, "label": "record_1.wav w=2.0 s=0.5"}, {"x": 162.56666666666666, "y": 0.26159643811090594, "label": "record_3.wav w=2.0 s=0.5"}], "backgroundColor": "rgba(255,99,132,0.8)"}], "window_der": [{"label": "ecapa-tdnn", "data": [{"x": 2.0, "y": 0.2487309759032884}], "borderColor": "rgba(54,162,235,0.8)", "backgroundColor": "rgba(54,162,235,0.8)", "fill": false, "tension": 0.2}, {"label": "pyannote/embedding", "data": [{"x": 2.0, "y": 0.21382638760357947}], "borderColor": "rgba(255,99,132,0.8)", "backgroundColor": "rgba(255,99,132,0.8)", "fill": false, "tension": 0.2}], "scheduler_bar": {"labels": ["baseline", "decay-A", "decay-B", "hdbscan-off", "hdbscan-on", "legacy-adaptive", "legacy-both", "legacy-final"], "datasets": [{"label": "ecapa-tdnn", "data": [0.2054, 0.2606, 0.2161, 0.2054, 0.2888, 0.2024, 0.3055, 0.3055], "backgroundColor": "rgba(54,162,235,0.8)"}, {"label": "pyannote/embedding", "data": [0.1992, 0.2732, 0.2307, 0.1992, 0.1963, 0.1944, 0.2087, 0.2087], "backgroundColor": "rgba(255,99,132,0.8)"}]}, "scheduler_delta": {"labels": ["baseline", "decay-A", "decay-B", "hdbscan-off", "hdbscan-on", "legacy-adaptive", "legacy-both", "legacy-final"], "datasets": [{"label": "ecapa-tdnn", "data": [0.0, 0.0552, 0.0107, 0.0, 0.0834, -0.003, 0.1001, 0.1001], "backgroundColor": "rgba(54,162,235,0.8)"}, {"label": "pyannote/embedding", "data": [0.0, 0.074, 0.0315, 0.0, -0.003, -0.0048, 0.0095, 0.0095], "backgroundColor": "rgba(255,99,132,0.8)"}]}};
+
+function makeScatter(canvasId, datasets, xLabel, yLabel) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' }, tooltip: {
+        callbacks: { label: ctx => `${ctx.dataset.label}: (${ctx.parsed.x.toFixed(2)}, ${ctx.parsed.y.toFixed(3)})` }
+      }},
+      scales: {
+        x: { title: { display: true, text: xLabel } },
+        y: { title: { display: true, text: yLabel } },
+      }
+    }
+  });
+}
+
+function makeLine(canvasId, datasets, xLabel, yLabel) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { type: 'linear', title: { display: true, text: xLabel } },
+        y: { title: { display: true, text: yLabel } },
+      }
+    }
+  });
+}
+
+function makeBar(canvasId, barData, yLabel) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx || !barData) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels: barData.labels, datasets: barData.datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { title: { display: true, text: 'Scheduler' } },
+        y: { title: { display: true, text: yLabel } },
+      }
+    }
+  });
+}
+
+makeBar(    'chart-scheduler-bar',   chartData.scheduler_bar,   'DER (avg)');
+makeBar(    'chart-scheduler-delta', chartData.scheduler_delta,  'DER delta vs baseline (↓ = improvement)');
+makeScatter('chart-der-latency', chartData.der_latency, 'Labeling Latency p50 (s)', 'DER');
+makeScatter('chart-der-cpu',     chartData.der_cpu,     'CPU avg %',                'DER');
+makeLine(   'chart-window-der',  chartData.window_der,  'Window (s)',               'DER');
+
+// sortable table
+let _sortDir = {};
+function sortTable(col) {
+  const tbl = document.getElementById('results-table');
+  const tbody = tbl.tBodies[0];
+  const rows = Array.from(tbody.rows);
+  _sortDir[col] = !(_sortDir[col] || false);
+  rows.sort((a, b) => {
+    const av = a.cells[col].textContent.trim();
+    const bv = b.cells[col].textContent.trim();
+    const an = parseFloat(av), bn = parseFloat(bv);
+    const cmp = isNaN(an) || isNaN(bn) ? av.localeCompare(bv) : an - bn;
+    return _sortDir[col] ? cmp : -cmp;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+</script>
+</body>
+</html>

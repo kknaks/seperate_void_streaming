@@ -77,7 +77,10 @@ footer {{ margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color
 <tr><td>ecapa-tdnn</td><td>0.205</td><td>46s</td><td>✅ CPU 실시간 OK (일관성 최고)</td></tr>
 </table>
 
-<p class="muted">상세 분석: <a href="phase1-analysis.html">Phase 1 분석 보고서</a></p>
+<p class="muted">상세 분석:
+<a href="phase1-analysis.html">Phase 1 분석</a> ·
+<a href="v02-final.html"><strong>v0.2 최종 종합 ⭐</strong></a>
+</p>
 
 <h2>📁 Phase 별 산출물</h2>
 
@@ -131,6 +134,25 @@ footer {{ margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color
 <li>decay-A: 전 모델 악화 (avg +6.5pp). decay-B: 소폭 악화 (+2.1pp)</li>
 <li>hdbscan-on: pyannote 소폭 개선 (−0.3pp), ecapa-tdnn 대폭 악화 (+8.4pp) — 비일관성</li>
 <li><strong>결론</strong>: baseline (diart default) 채택 권고. 북극성 DER ≤ 0.15 미달, Phase 3 또는 GPU 환경 검토 필요</li>
+</ul>
+</div>
+
+<div class="phase done">
+<h3>Phase 2b — Legacy Scheduler Comparison <span class="status done">DONE</span></h3>
+<ul>
+<li>📊 <a href="phase2b-legacy-20260522.html">Phase 2b HTML (32 rows, 8 scheduler 통합 비교)</a> ⭐</li>
+<li>입력: pyannote/embedding + ecapa-tdnn (w=2.0 s=0.5) — Phase 2 + 3 legacy variant 통합</li>
+<li>legacy 3종: legacy-adaptive (AdaptiveReclusterScheduler) / legacy-final (FinalReclusterer HDBSCAN+Hungarian) / legacy-both (adaptive→final)</li>
+<li>측정: 2 후보 × 3 legacy × 2 sample = 12 rows (에러 0) → Phase 2 20 rows + Phase 2b 12 rows = 32 rows 통합 비교</li>
+<li>📄 <a href="../../../reports/PLAN-V02-T-009-engine-core.md">PLAN-V02-T-009 결과 리포트</a></li>
+</ul>
+<p><strong>핵심 발견</strong>:</p>
+<ul>
+<li><strong>legacy-adaptive</strong>: 소폭 중립 효과 — pyannote avg 0.195 (−0.4pp), ecapa avg 0.203 (−0.3pp). 채택 기준 ≥2pp 미달</li>
+<li><strong>legacy-final (HDBSCAN+Hungarian)</strong>: ecapa-tdnn 대폭 악화 (+10pp). pyannote 소폭 악화 (+1pp) — 채택 불가</li>
+<li><strong>legacy-both</strong>: final 패스가 지배 — legacy-final 과 동일 결과</li>
+<li><strong>결론</strong>: 8 scheduler 모두 채택 기준 미달. baseline (diart default) 최종 확정</li>
+<li>v0.1 smoke 의 "finalize ≈ online DER" 패턴은 v0.2 clean 환경에서 재현되지 않음 — FinalReclusterer 실측 악화</li>
 </ul>
 </div>
 
@@ -237,6 +259,15 @@ def main():
             analysis_md,
             results_dir / "phase1-analysis.html",
             "Phase 1 Ablation 분석 — Embedding × Window × Step",
+        )
+
+    # v0.2 final 종합 분석 HTML 변환
+    final_md = RETROSPECTIVE / "v02-final.md"
+    if final_md.exists():
+        render_markdown_to_html(
+            final_md,
+            results_dir / "v02-final.html",
+            "v0.2 Ablation Study 최종 종합",
         )
 
     # INDEX HTML

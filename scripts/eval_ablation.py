@@ -55,20 +55,26 @@ _PYTHON_VERSION = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.versi
 # Implementation mapping (diart params only change mid-stream X, so we use
 # static proxy values to approximate intended clustering behavior):
 #
-#   baseline   : default diart params — no decay, no HDBSCAN
-#   decay-A    : tau_active↓ + rho_update↑ → more aggressive update / lower threshold
-#                approximates "high initial update rate then decays to this stable state"
-#   decay-B    : tau_active↑ + rho_update↓ + delta_new↑ → conservative clustering
-#                approximates "time-windowed recluster settling to stable state"
-#   hdbscan-off: same diart params as baseline — explicit no-HDBSCAN control group
-#   hdbscan-on : same diart params as baseline + HDBSCAN final-pass on segment embeddings
+#   baseline       : default diart params — no decay, no HDBSCAN
+#   decay-A        : tau_active↓ + rho_update↑ → more aggressive update / lower threshold
+#                    approximates "high initial update rate then decays to this stable state"
+#   decay-B        : tau_active↑ + rho_update↓ + delta_new↑ → conservative clustering
+#                    approximates "time-windowed recluster settling to stable state"
+#   hdbscan-off    : same diart params as baseline — explicit no-HDBSCAN control group
+#   hdbscan-on     : same diart params as baseline + HDBSCAN final-pass on segment embeddings
+#   legacy-adaptive: baseline diart streaming + AdaptiveReclusterScheduler post-pass (PLAN-V02-T-009)
+#   legacy-final   : baseline diart streaming + FinalReclusterer (HDBSCAN+Hungarian) post-pass
+#   legacy-both    : baseline diart streaming + adaptive then final post-pass
 # ─────────────────────────────────────────────────────────────────────────────
 SCHEDULER_PARAMS: dict[str, dict] = {
-    "baseline":    dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
-    "decay-A":     dict(tau_active=0.5, rho_update=0.5, delta_new=0.8),
-    "decay-B":     dict(tau_active=0.7, rho_update=0.1, delta_new=1.2),
-    "hdbscan-off": dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
-    "hdbscan-on":  dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
+    "baseline":        dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
+    "decay-A":         dict(tau_active=0.5, rho_update=0.5, delta_new=0.8),
+    "decay-B":         dict(tau_active=0.7, rho_update=0.1, delta_new=1.2),
+    "hdbscan-off":     dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
+    "hdbscan-on":      dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
+    "legacy-adaptive": dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
+    "legacy-final":    dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
+    "legacy-both":     dict(tau_active=0.6, rho_update=0.3, delta_new=1.0),
 }
 
 _VALID_SCHEDULERS = set(SCHEDULER_PARAMS)
@@ -156,6 +162,137 @@ def apply_hdbscan_final(
     for (seg, _, _), cid in zip(segs_info, cluster_ids):
         new_ann[seg] = lbl_map[int(cid)]
 
+    return new_ann
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Legacy clustering (legacy-adaptive / legacy-final / legacy-both)
+# Uses speaker_engine.speaker.scheduler + final directly (PLAN-V02-T-009)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class _SimpleUtt:
+    """Mutable UtteranceEntry for legacy scheduler calls (structural typing)."""
+    __slots__ = ("utterance_id", "label", "embedding", "is_locked", "t_start", "t_end")
+
+    def __init__(
+        self,
+        utterance_id: str,
+        label: str,
+        embedding: np.ndarray,
+        t_start: float,
+        t_end: float,
+    ) -> None:
+        self.utterance_id = utterance_id
+        self.label = label
+        self.embedding = embedding
+        self.is_locked = False
+        self.t_start = t_start
+        self.t_end = t_end
+
+
+def _build_centers(utts: list) -> tuple[np.ndarray, list[str]]:
+    """Compute per-label L2-normalized centroids from utterance list."""
+    labels_list = sorted(set(u.label for u in utts))
+    centers = []
+    for lbl in labels_list:
+        lbl_embs = np.array([u.embedding for u in utts if u.label == lbl], dtype=float)
+        c = lbl_embs.mean(axis=0)
+        n = float(np.linalg.norm(c))
+        centers.append(c / n if n > 0.0 else c)
+    return np.array(centers, dtype=float), labels_list
+
+
+def apply_legacy_clustering(
+    predicted: Annotation,
+    audio_path: str,
+    our_model,
+    scheduler: str,
+) -> Annotation:
+    """Post-process streaming annotation with legacy AdaptiveReclusterScheduler / FinalReclusterer."""
+    import soundfile as sf
+    from speaker_engine.speaker.scheduler import AdaptiveReclusterScheduler
+    from speaker_engine.speaker.final import FinalReclusterer
+
+    audio, file_sr = sf.read(audio_path, dtype="float32", always_2d=False)
+    if audio.ndim > 1:
+        audio = audio.mean(axis=1)
+
+    seg_list = [(seg, label) for seg, _, label in predicted.itertracks(yield_label=True)]
+
+    # Extract embedding per segment
+    utterances: list[_SimpleUtt] = []
+    uid_has_emb: set[str] = set()
+
+    for seg_idx, (seg, orig_label) in enumerate(seg_list):
+        uid = str(seg_idx)
+        start_i = int(seg.start * file_sr)
+        end_i = int(seg.end * file_sr)
+        chunk = audio[start_i:end_i]
+        if len(chunk) < int(file_sr * 0.1):
+            continue
+        try:
+            emb = our_model.extract(chunk.astype(np.float32), sr=file_sr)
+            if emb is None or np.any(np.isnan(emb)):
+                continue
+            emb = np.asarray(emb, dtype=float)
+            n = float(np.linalg.norm(emb))
+            if n > 0.0:
+                emb = emb / n
+        except Exception:
+            continue
+        utterances.append(_SimpleUtt(uid, orig_label, emb, float(seg.start), float(seg.end)))
+        uid_has_emb.add(uid)
+
+    if not utterances:
+        return predicted
+
+    centers, labels_list = _build_centers(utterances)
+    uid_map: dict[str, str] = {}  # utterance_id -> new_label
+
+    if scheduler in ("legacy-adaptive", "legacy-both"):
+        adaptive = AdaptiveReclusterScheduler()
+        changes = adaptive.recluster(utterances, centers, labels_list, delta_new=1.0)
+        for ch in changes:
+            for uid in ch.affected_utterance_ids:
+                uid_map[uid] = ch.new_label
+        for u in utterances:
+            if u.utterance_id in uid_map:
+                u.label = uid_map[u.utterance_id]
+        if scheduler == "legacy-both":
+            centers, labels_list = _build_centers(utterances)
+            uid_map = {}
+
+    if scheduler in ("legacy-final", "legacy-both"):
+        final_r = FinalReclusterer()
+        try:
+            _, changes = final_r.finalize(utterances, centers, labels_list)
+        except Exception:
+            changes = []
+        for ch in changes:
+            for uid in ch.affected_utterance_ids:
+                uid_map[uid] = ch.new_label
+
+    if not uid_map:
+        # adaptive-only with no changes: u.label may have been updated in-place
+        if scheduler == "legacy-adaptive":
+            uid_to_utt = {u.utterance_id: u for u in utterances}
+            new_ann = Annotation(uri=predicted.uri)
+            for seg_idx, (seg, orig_label) in enumerate(seg_list):
+                uid = str(seg_idx)
+                new_ann[seg] = uid_to_utt[uid].label if uid in uid_to_utt else orig_label
+            return new_ann
+        return predicted
+
+    uid_to_utt = {u.utterance_id: u for u in utterances}
+    new_ann = Annotation(uri=predicted.uri)
+    for seg_idx, (seg, orig_label) in enumerate(seg_list):
+        uid = str(seg_idx)
+        if uid in uid_map:
+            new_ann[seg] = uid_map[uid]
+        elif uid in uid_to_utt:
+            new_ann[seg] = uid_to_utt[uid].label
+        else:
+            new_ann[seg] = orig_label
     return new_ann
 
 
@@ -354,6 +491,15 @@ def run_combination(
                 )
             except Exception:
                 pass  # fallback: keep streaming annotation on HDBSCAN error
+
+        # Legacy wrapper post-pass (PLAN-V02-T-009)
+        if scheduler in ("legacy-adaptive", "legacy-final", "legacy-both"):
+            try:
+                predicted = apply_legacy_clustering(
+                    predicted, sample_path, our_model, scheduler
+                )
+            except Exception:
+                pass  # fallback: keep streaming annotation on error
 
         reference = load_rttm(gt_rttm_path)
 
