@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>RTTM Viewer — record_1.wav</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; margin: 20px; }
+    h1 { font-size: 18px; margin-bottom: 8px; }
+    audio { width: 100%; margin-bottom: 10px; }
+    .current-speaker {
+      font-size: 20px; padding: 8px 12px; background: #333;
+      border-radius: 4px; margin-bottom: 10px; min-height: 36px;
+    }
+    .timeline-wrap { position: relative; height: 60px; background: #222;
+      border-radius: 4px; overflow: hidden; cursor: pointer; }
+    .segment { position: absolute; top: 0; height: 60px; opacity: 0.75; }
+    .cursor { position: absolute; top: 0; width: 2px; height: 60px;
+      background: white; pointer-events: none; transition: left 0.05s linear; }
+    .time-labels { position: relative; height: 18px; }
+    .time-label { position: absolute; font-size: 10px; color: #888;
+      transform: translateX(-50%); }
+    .legend { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .legend-item { padding: 4px 12px; border-radius: 12px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>RTTM Viewer — record_1.wav</h1>
+
+  <audio id="player" controls src="record_1.wav"></audio>
+
+  <div class="current-speaker" id="currentSpeaker">현재 화자: —</div>
+
+  <div class="timeline-wrap" id="timeline"></div>
+  <div class="time-labels" id="timeLabels"></div>
+  <div class="legend" id="legend"></div>
+
+  <script>
+    const segments = [{"start": 0.382, "end": 1.2309999999999999, "speaker": "SPEAKER_00"}, {"start": 1.316, "end": 2.4539999999999997, "speaker": "SPEAKER_01"}, {"start": 2.725, "end": 11.892999999999999, "speaker": "SPEAKER_00"}, {"start": 11.418, "end": 11.841999999999999, "speaker": "SPEAKER_01"}, {"start": 11.978, "end": 12.063, "speaker": "SPEAKER_00"}, {"start": 12.25, "end": 13.303, "speaker": "SPEAKER_00"}, {"start": 13.744, "end": 13.761, "speaker": "SPEAKER_01"}, {"start": 13.761, "end": 15.0, "speaker": "SPEAKER_00"}, {"start": 15.0, "end": 15.985, "speaker": "SPEAKER_01"}, {"start": 15.985, "end": 16.002, "speaker": "SPEAKER_00"}, {"start": 16.324, "end": 21.978, "speaker": "SPEAKER_01"}, {"start": 22.691, "end": 32.47, "speaker": "SPEAKER_00"}, {"start": 33.523, "end": 35.883, "speaker": "SPEAKER_00"}, {"start": 36.358, "end": 37.003, "speaker": "SPEAKER_00"}, {"start": 37.003, "end": 39.855, "speaker": "SPEAKER_01"}, {"start": 40.874, "end": 43.353, "speaker": "SPEAKER_01"}, {"start": 44.083, "end": 45.781, "speaker": "SPEAKER_01"}, {"start": 46.222, "end": 49.227000000000004, "speaker": "SPEAKER_01"}, {"start": 46.834, "end": 48.005, "speaker": "SPEAKER_00"}, {"start": 48.973, "end": 49.211, "speaker": "SPEAKER_00"}, {"start": 49.228, "end": 49.262, "speaker": "SPEAKER_00"}, {"start": 49.261, "end": 49.363, "speaker": "SPEAKER_01"}, {"start": 49.55, "end": 55.153, "speaker": "SPEAKER_01"}, {"start": 55.34, "end": 60.926, "speaker": "SPEAKER_00"}, {"start": 61.723, "end": 62.181, "speaker": "SPEAKER_00"}, {"start": 62.674, "end": 66.766, "speaker": "SPEAKER_00"}, {"start": 64.287, "end": 65.17, "speaker": "SPEAKER_01"}, {"start": 66.935, "end": 109.295, "speaker": "SPEAKER_01"}, {"start": 109.295, "end": 119.414, "speaker": "SPEAKER_00"}, {"start": 109.363, "end": 110.059, "speaker": "SPEAKER_01"}, {"start": 119.499, "end": 128.548, "speaker": "SPEAKER_01"}, {"start": 128.667, "end": 139.38, "speaker": "SPEAKER_01"}, {"start": 139.686, "end": 156.681, "speaker": "SPEAKER_01"}, {"start": 157.581, "end": 174.38899999999998, "speaker": "SPEAKER_01"}, {"start": 161.842, "end": 162.351, "speaker": "SPEAKER_00"}, {"start": 173.93, "end": 176.596, "speaker": "SPEAKER_00"}, {"start": 174.728, "end": 175.916, "speaker": "SPEAKER_01"}, {"start": 177.92, "end": 180.518, "speaker": "SPEAKER_00"}, {"start": 180.908, "end": 190.993, "speaker": "SPEAKER_00"}, {"start": 190.993, "end": 191.672, "speaker": "SPEAKER_01"}, {"start": 191.672, "end": 192.147, "speaker": "SPEAKER_00"}, {"start": 191.689, "end": 226.748, "speaker": "SPEAKER_01"}, {"start": 227.581, "end": 228.20899999999997, "speaker": "SPEAKER_00"}, {"start": 228.65, "end": 229.669, "speaker": "SPEAKER_00"}, {"start": 230.127, "end": 230.84, "speaker": "SPEAKER_00"}, {"start": 232.148, "end": 232.674, "speaker": "SPEAKER_00"}, {"start": 233.574, "end": 236.8, "speaker": "SPEAKER_00"}, {"start": 237.258, "end": 238.00500000000002, "speaker": "SPEAKER_01"}, {"start": 238.005, "end": 238.022, "speaker": "SPEAKER_00"}, {"start": 239.601, "end": 255.034, "speaker": "SPEAKER_01"}, {"start": 256.783, "end": 257.326, "speaker": "SPEAKER_00"}, {"start": 257.581, "end": 258.005, "speaker": "SPEAKER_00"}, {"start": 258.005, "end": 258.752, "speaker": "SPEAKER_01"}, {"start": 259.075, "end": 262.97999999999996, "speaker": "SPEAKER_01"}, {"start": 262.98, "end": 262.997, "speaker": "SPEAKER_00"}, {"start": 262.997, "end": 263.048, "speaker": "SPEAKER_01"}, {"start": 263.048, "end": 263.693, "speaker": "SPEAKER_00"}, {"start": 263.098, "end": 268.514, "speaker": "SPEAKER_01"}, {"start": 269.16, "end": 269.822, "speaker": "SPEAKER_00"}, {"start": 275.0, "end": 277.088, "speaker": "SPEAKER_00"}];
+    const duration  = 277.483;
+
+    // ── colour palette (≤4 named; overflow uses hash) ──────────────────────
+    const PALETTE = ['#4a90e2','#e94e77','#f5a623','#7ed321'];
+    function speakerColor(sp) {
+      const m = sp.match(/_(\d+)$/);
+      if (m) {
+        const idx = parseInt(m[1], 10);
+        if (idx < PALETTE.length) return PALETTE[idx];
+      }
+      // hash fallback
+      let h = 0;
+      for (const c of sp) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+      return `hsl(${h % 360}, 70%, 55%)`;
+    }
+
+    // ── build speaker → colour map ─────────────────────────────────────────
+    const speakers = [...new Set(segments.map(s => s.speaker))].sort();
+    const colorMap  = Object.fromEntries(speakers.map(sp => [sp, speakerColor(sp)]));
+
+    // ── render timeline segments ──────────────────────────────────────────
+    const timeline = document.getElementById('timeline');
+    segments.forEach(seg => {
+      const bar = document.createElement('div');
+      bar.className = 'segment';
+      bar.style.background = colorMap[seg.speaker];
+      bar.style.left  = `${(seg.start / duration) * 100}%`;
+      bar.style.width = `${((seg.end - seg.start) / duration) * 100}%`;
+      bar.title = `${seg.speaker}  ${seg.start.toFixed(2)}s – ${seg.end.toFixed(2)}s`;
+      bar.addEventListener('click', e => {
+        e.stopPropagation();
+        player.currentTime = seg.start;
+        player.play();
+      });
+      timeline.appendChild(bar);
+    });
+
+    // cursor
+    const cursor = document.createElement('div');
+    cursor.className = 'cursor';
+    timeline.appendChild(cursor);
+
+    // click on empty timeline area → seek
+    timeline.addEventListener('click', e => {
+      const rect = timeline.getBoundingClientRect();
+      player.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
+      player.play();
+    });
+
+    // ── time axis labels ──────────────────────────────────────────────────
+    const labelWrap = document.getElementById('timeLabels');
+    const step = duration <= 60 ? 10 : duration <= 300 ? 30 : 60;
+    for (let t = 0; t <= duration; t += step) {
+      const lbl = document.createElement('div');
+      lbl.className = 'time-label';
+      lbl.style.left = `${(t / duration) * 100}%`;
+      const m = Math.floor(t / 60), s = Math.floor(t % 60);
+      lbl.textContent = `${m}:${String(s).padStart(2,'0')}`;
+      labelWrap.appendChild(lbl);
+    }
+
+    // ── playback tracker ─────────────────────────────────────────────────
+    const player    = document.getElementById('player');
+    const infoEl    = document.getElementById('currentSpeaker');
+    player.addEventListener('timeupdate', () => {
+      const t = player.currentTime;
+      cursor.style.left = `${(t / duration) * 100}%`;
+      const cur = segments.find(s => s.start <= t && t < s.end);
+      infoEl.textContent = cur
+        ? `현재 화자: ${cur.speaker}  (${t.toFixed(2)}s)`
+        : `현재 화자: —  (${t.toFixed(2)}s)`;
+    });
+
+    // ── legend ────────────────────────────────────────────────────────────
+    const legendEl = document.getElementById('legend');
+    speakers.forEach(sp => {
+      const el = document.createElement('div');
+      el.className = 'legend-item';
+      el.style.background = colorMap[sp];
+      el.style.color = '#fff';
+      el.textContent = sp;
+      legendEl.appendChild(el);
+    });
+  </script>
+</body>
+</html>

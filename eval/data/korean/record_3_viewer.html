@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>RTTM Viewer — record_3.wav</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; margin: 20px; }
+    h1 { font-size: 18px; margin-bottom: 8px; }
+    audio { width: 100%; margin-bottom: 10px; }
+    .current-speaker {
+      font-size: 20px; padding: 8px 12px; background: #333;
+      border-radius: 4px; margin-bottom: 10px; min-height: 36px;
+    }
+    .timeline-wrap { position: relative; height: 60px; background: #222;
+      border-radius: 4px; overflow: hidden; cursor: pointer; }
+    .segment { position: absolute; top: 0; height: 60px; opacity: 0.75; }
+    .cursor { position: absolute; top: 0; width: 2px; height: 60px;
+      background: white; pointer-events: none; transition: left 0.05s linear; }
+    .time-labels { position: relative; height: 18px; }
+    .time-label { position: absolute; font-size: 10px; color: #888;
+      transform: translateX(-50%); }
+    .legend { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .legend-item { padding: 4px 12px; border-radius: 12px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>RTTM Viewer — record_3.wav</h1>
+
+  <audio id="player" controls src="record_3.wav"></audio>
+
+  <div class="current-speaker" id="currentSpeaker">현재 화자: —</div>
+
+  <div class="timeline-wrap" id="timeline"></div>
+  <div class="time-labels" id="timeLabels"></div>
+  <div class="legend" id="legend"></div>
+
+  <script>
+    const segments = [{"start": 0.008, "end": 3.081, "speaker": "SPEAKER_00"}, {"start": 3.387, "end": 7.411, "speaker": "SPEAKER_00"}, {"start": 7.122, "end": 7.173, "speaker": "SPEAKER_01"}, {"start": 7.632, "end": 9.567, "speaker": "SPEAKER_00"}, {"start": 9.975, "end": 11.129, "speaker": "SPEAKER_00"}, {"start": 12.148, "end": 26.223, "speaker": "SPEAKER_00"}, {"start": 12.895, "end": 12.997, "speaker": "SPEAKER_01"}, {"start": 13.031, "end": 13.642000000000001, "speaker": "SPEAKER_01"}, {"start": 20.518, "end": 21.078, "speaker": "SPEAKER_01"}, {"start": 26.409, "end": 26.985999999999997, "speaker": "SPEAKER_00"}, {"start": 27.428, "end": 28.294, "speaker": "SPEAKER_00"}, {"start": 28.973, "end": 32.521, "speaker": "SPEAKER_00"}, {"start": 33.285, "end": 36.409, "speaker": "SPEAKER_00"}, {"start": 33.472, "end": 34.202, "speaker": "SPEAKER_01"}, {"start": 36.783, "end": 46.019000000000005, "speaker": "SPEAKER_00"}, {"start": 46.698, "end": 60.161, "speaker": "SPEAKER_00"}, {"start": 61.214, "end": 76.63, "speaker": "SPEAKER_00"}, {"start": 73.336, "end": 74.151, "speaker": "SPEAKER_01"}, {"start": 77.173, "end": 80.36500000000001, "speaker": "SPEAKER_00"}, {"start": 80.569, "end": 85.49300000000001, "speaker": "SPEAKER_00"}, {"start": 86.121, "end": 90.04299999999999, "speaker": "SPEAKER_00"}, {"start": 88.599, "end": 88.735, "speaker": "SPEAKER_01"}, {"start": 89.397, "end": 89.787, "speaker": "SPEAKER_01"}, {"start": 90.178, "end": 91.17999999999999, "speaker": "SPEAKER_00"}, {"start": 91.316, "end": 112.165, "speaker": "SPEAKER_00"}, {"start": 91.995, "end": 92.47, "speaker": "SPEAKER_01"}, {"start": 109.618, "end": 109.75399999999999, "speaker": "SPEAKER_01"}, {"start": 109.822, "end": 109.839, "speaker": "SPEAKER_01"}, {"start": 112.436, "end": 113.93, "speaker": "SPEAKER_00"}, {"start": 114.219, "end": 121.469, "speaker": "SPEAKER_00"}, {"start": 116.138, "end": 117.004, "speaker": "SPEAKER_01"}, {"start": 121.486, "end": 137.53, "speaker": "SPEAKER_00"}, {"start": 122.233, "end": 122.674, "speaker": "SPEAKER_01"}, {"start": 137.937, "end": 151.33300000000003, "speaker": "SPEAKER_00"}, {"start": 140.806, "end": 141.34900000000002, "speaker": "SPEAKER_01"}, {"start": 149.856, "end": 150.213, "speaker": "SPEAKER_01"}, {"start": 151.367, "end": 152.64, "speaker": "SPEAKER_00"}, {"start": 156.036, "end": 156.732, "speaker": "SPEAKER_00"}, {"start": 159.041, "end": 162.64, "speaker": "SPEAKER_00"}, {"start": 163.183, "end": 167.971, "speaker": "SPEAKER_00"}, {"start": 165.662, "end": 166.29, "speaker": "SPEAKER_01"}];
+    const duration  = 168.213;
+
+    // ── colour palette (≤4 named; overflow uses hash) ──────────────────────
+    const PALETTE = ['#4a90e2','#e94e77','#f5a623','#7ed321'];
+    function speakerColor(sp) {
+      const m = sp.match(/_(\d+)$/);
+      if (m) {
+        const idx = parseInt(m[1], 10);
+        if (idx < PALETTE.length) return PALETTE[idx];
+      }
+      // hash fallback
+      let h = 0;
+      for (const c of sp) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+      return `hsl(${h % 360}, 70%, 55%)`;
+    }
+
+    // ── build speaker → colour map ─────────────────────────────────────────
+    const speakers = [...new Set(segments.map(s => s.speaker))].sort();
+    const colorMap  = Object.fromEntries(speakers.map(sp => [sp, speakerColor(sp)]));
+
+    // ── render timeline segments ──────────────────────────────────────────
+    const timeline = document.getElementById('timeline');
+    segments.forEach(seg => {
+      const bar = document.createElement('div');
+      bar.className = 'segment';
+      bar.style.background = colorMap[seg.speaker];
+      bar.style.left  = `${(seg.start / duration) * 100}%`;
+      bar.style.width = `${((seg.end - seg.start) / duration) * 100}%`;
+      bar.title = `${seg.speaker}  ${seg.start.toFixed(2)}s – ${seg.end.toFixed(2)}s`;
+      bar.addEventListener('click', e => {
+        e.stopPropagation();
+        player.currentTime = seg.start;
+        player.play();
+      });
+      timeline.appendChild(bar);
+    });
+
+    // cursor
+    const cursor = document.createElement('div');
+    cursor.className = 'cursor';
+    timeline.appendChild(cursor);
+
+    // click on empty timeline area → seek
+    timeline.addEventListener('click', e => {
+      const rect = timeline.getBoundingClientRect();
+      player.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
+      player.play();
+    });
+
+    // ── time axis labels ──────────────────────────────────────────────────
+    const labelWrap = document.getElementById('timeLabels');
+    const step = duration <= 60 ? 10 : duration <= 300 ? 30 : 60;
+    for (let t = 0; t <= duration; t += step) {
+      const lbl = document.createElement('div');
+      lbl.className = 'time-label';
+      lbl.style.left = `${(t / duration) * 100}%`;
+      const m = Math.floor(t / 60), s = Math.floor(t % 60);
+      lbl.textContent = `${m}:${String(s).padStart(2,'0')}`;
+      labelWrap.appendChild(lbl);
+    }
+
+    // ── playback tracker ─────────────────────────────────────────────────
+    const player    = document.getElementById('player');
+    const infoEl    = document.getElementById('currentSpeaker');
+    player.addEventListener('timeupdate', () => {
+      const t = player.currentTime;
+      cursor.style.left = `${(t / duration) * 100}%`;
+      const cur = segments.find(s => s.start <= t && t < s.end);
+      infoEl.textContent = cur
+        ? `현재 화자: ${cur.speaker}  (${t.toFixed(2)}s)`
+        : `현재 화자: —  (${t.toFixed(2)}s)`;
+    });
+
+    // ── legend ────────────────────────────────────────────────────────────
+    const legendEl = document.getElementById('legend');
+    speakers.forEach(sp => {
+      const el = document.createElement('div');
+      el.className = 'legend-item';
+      el.style.background = colorMap[sp];
+      el.style.color = '#fff';
+      el.textContent = sp;
+      legendEl.appendChild(el);
+    });
+  </script>
+</body>
+</html>
