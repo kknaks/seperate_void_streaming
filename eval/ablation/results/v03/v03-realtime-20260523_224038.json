@@ -1,0 +1,102 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "sample": "record_1.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 277.5,
+    "metrics": {
+      "live_emit_latency_p50_s": -131.37308295816183,
+      "live_emit_latency_p95_s": -14.79764560458716,
+      "online_der_at_30s": 3.0425284429180053,
+      "online_der_at_60s": 3.1528193673399243,
+      "online_der_at_end": 3.166890050943877,
+      "final_der": 3.166890050943877,
+      "cpu_peak_pct": 204.3,
+      "cpu_avg_pct": 180.0764705882353,
+      "ram_peak_mb": 521.74848,
+      "ram_avg_mb": 298.5781609411765,
+      "segment_count": 624,
+      "emit_count": 551
+    },
+    "error": null,
+    "cold_load_s": 0.9615148329176009,
+    "timestamp": "2026-05-23T22:40:56.585070"
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "sample": "record_3.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 168.2,
+    "metrics": {
+      "live_emit_latency_p50_s": -80.13405925012194,
+      "live_emit_latency_p95_s": -9.783691949909564,
+      "online_der_at_30s": 3.046205512166551,
+      "online_der_at_60s": 3.142324907746116,
+      "online_der_at_end": 3.244123334073023,
+      "final_der": 3.244123334073023,
+      "cpu_peak_pct": 202.8,
+      "cpu_avg_pct": 174.52727272727273,
+      "ram_peak_mb": 292.814848,
+      "ram_avg_mb": 262.56551563636367,
+      "segment_count": 435,
+      "emit_count": 333
+    },
+    "error": null,
+    "cold_load_s": 0.9615148329176009,
+    "timestamp": "2026-05-23T22:41:07.622492"
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "sample": "record_1.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 277.5,
+    "metrics": {
+      "live_emit_latency_p50_s": -114.02802629186772,
+      "live_emit_latency_p95_s": -13.106945249950513,
+      "online_der_at_30s": 3.2310673063025233,
+      "online_der_at_60s": 3.4508867154814493,
+      "online_der_at_end": 3.2431729870534496,
+      "final_der": 3.2431729870534496,
+      "cpu_peak_pct": 207.9,
+      "cpu_avg_pct": 186.69074074074072,
+      "ram_peak_mb": 550.076416,
+      "ram_avg_mb": 386.885101037037,
+      "segment_count": 624,
+      "emit_count": 551
+    },
+    "error": null,
+    "cold_load_s": 0.14496762491762638,
+    "timestamp": "2026-05-23T22:42:01.960554"
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "sample": "record_3.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 168.2,
+    "metrics": {
+      "live_emit_latency_p50_s": -69.80972354090773,
+      "live_emit_latency_p95_s": -8.772198390960703,
+      "online_der_at_30s": 2.979318948775185,
+      "online_der_at_60s": 3.111155896601289,
+      "online_der_at_end": 3.232953226137999,
+      "final_der": 3.232953226137999,
+      "cpu_peak_pct": 207.0,
+      "cpu_avg_pct": 193.50645161290328,
+      "ram_peak_mb": 430.915584,
+      "ram_avg_mb": 391.4386002580645,
+      "segment_count": 435,
+      "emit_count": 333
+    },
+    "error": null,
+    "cold_load_s": 0.14496762491762638,
+    "timestamp": "2026-05-23T22:42:33.076608"
+  }
+]

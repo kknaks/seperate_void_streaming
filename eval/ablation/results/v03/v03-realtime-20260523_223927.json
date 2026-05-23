@@ -1,0 +1,50 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "sample": "record_1.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 0.0,
+    "metrics": {},
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/realtime_ablation.py\", line 283, in run_one\n    n_frames, n_classes = seg_data.shape\n    ^^^^^^^^^^^^^^^^^^^\nValueError: too many values to unpack (expected 2)\n",
+    "cold_load_s": 0.7747792908921838,
+    "timestamp": "2026-05-23T22:39:29.703623"
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "sample": "record_3.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 0.0,
+    "metrics": {},
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/realtime_ablation.py\", line 283, in run_one\n    n_frames, n_classes = seg_data.shape\n    ^^^^^^^^^^^^^^^^^^^\nValueError: too many values to unpack (expected 2)\n",
+    "cold_load_s": 0.7747792908921838,
+    "timestamp": "2026-05-23T22:39:30.711824"
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "sample": "record_1.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 0.0,
+    "metrics": {},
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/realtime_ablation.py\", line 283, in run_one\n    n_frames, n_classes = seg_data.shape\n    ^^^^^^^^^^^^^^^^^^^\nValueError: too many values to unpack (expected 2)\n",
+    "cold_load_s": 0.16068849992007017,
+    "timestamp": "2026-05-23T22:39:31.877859"
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "sample": "record_3.wav",
+    "mode": "live-streaming",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "audio_dur_s": 0.0,
+    "metrics": {},
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/realtime_ablation.py\", line 283, in run_one\n    n_frames, n_classes = seg_data.shape\n    ^^^^^^^^^^^^^^^^^^^\nValueError: too many values to unpack (expected 2)\n",
+    "cold_load_s": 0.16068849992007017,
+    "timestamp": "2026-05-23T22:39:32.884784"
+  }
+]

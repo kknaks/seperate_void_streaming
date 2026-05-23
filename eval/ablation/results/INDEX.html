@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>void_streaming v0.2 — Ablation Study INDEX</title>
+<title>void_streaming v0.2/v0.3 — Ablation Study INDEX</title>
 <style>
 body { font-family: -apple-system, sans-serif; max-width: 1100px; margin: 30px auto; padding: 20px; line-height: 1.7; color: #222; }
 h1 { border-bottom: 3px solid #4a90e2; padding-bottom: 10px; }
@@ -34,8 +34,8 @@ footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color:
 </head>
 <body>
 
-<h1>🎙 void_streaming v0.2 — Ablation Study INDEX</h1>
-<p class="muted">Generated: 2026-05-22 17:16:52</p>
+<h1>🎙 void_streaming v0.2/v0.3 — Ablation Study INDEX</h1>
+<p class="muted">Generated: 2026-05-23 22:52 (Phase 3 추가)</p>
 <p>한국어 회의/상담 도메인에서 화자 분리 정확도 최적화 — embedding × window × scheduler ablation study + 결과 기반 단순 demo.</p>
 
 <h2>📊 핵심 결과 요약</h2>
@@ -97,49 +97,50 @@ footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color:
 </div>
 
 <div class="phase done">
-<h3>Phase 2 — scheduler ablation <span class="status done">DONE</span></h3>
+<h3>Phase 2 — scheduler ablation (8 variant 통합) <span class="status done">DONE</span></h3>
 <ul>
-<li>📊 <a href="phase2-20260522.html">Phase 2 HTML (20 rows, scheduler 비교 차트)</a> ⭐</li>
+<li>📊 <a href="phase2-final-20260522.html">Phase 2 최종 HTML (32 rows, 8 scheduler 통합 비교 차트)</a> ⭐</li>
 <li>입력: pyannote/embedding + ecapa-tdnn (w=2.0 s=0.5)</li>
-<li>scheduler 5종: baseline / decay-A / decay-B / hdbscan-on / hdbscan-off</li>
-<li>측정: 2 후보 × 5 scheduler × 2 sample = 20 rows (에러 0)</li>
-<li>📄 <a href="../../../reports/PLAN-V02-T-007-evaluator.md">PLAN-V02-T-007 결과 리포트</a></li>
+<li><strong>5 정적 variant</strong> (Phase 2): baseline / decay-A / decay-B / hdbscan-on / hdbscan-off — 2 × 5 × 2 = 20 rows</li>
+<li><strong>3 legacy 동적 variant</strong> (Phase 2b — 사용자 의도 직접 반영): legacy-adaptive (AdaptiveReclusterScheduler) / legacy-final (FinalReclusterer HDBSCAN+Hungarian) / legacy-both — 2 × 3 × 2 = 12 rows</li>
+<li>측정: 합계 32 rows (에러 0)</li>
+<li>📄 결과 리포트: <a href="../../../reports/PLAN-V02-T-007-evaluator.md">T-007 정적</a> · <a href="../../../reports/PLAN-V02-T-009-engine-core.md">T-009 legacy 동적</a></li>
 </ul>
 <p><strong>핵심 발견</strong>:</p>
 <ul>
-<li><strong>scheduler 효과 미미</strong> — 어떤 variant도 2pp 이상 DER 개선 없음 (채택 기준 미달)</li>
-<li>decay-A: 전 모델 악화 (avg +6.5pp). decay-B: 소폭 악화 (+2.1pp)</li>
-<li>hdbscan-on: pyannote 소폭 개선 (−0.3pp), ecapa-tdnn 대폭 악화 (+8.4pp) — 비일관성</li>
-<li><strong>결론</strong>: baseline (diart default) 채택 권고. 북극성 DER ≤ 0.15 미달, Phase 3 또는 GPU 환경 검토 필요</li>
+<li><strong>8 variant 모두 채택 기준 (≥2pp 개선) 미달</strong> → baseline (diart default) 최종 확정</li>
+<li>legacy-adaptive: 8 중 유일하게 양 모델 평균 개선 (pyannote −0.5pp, ecapa −0.3pp) — 그러나 ≥2pp 미달</li>
+<li>legacy-final (HDBSCAN): ecapa-tdnn 대폭 악화 (+10pp) — embedding 품질 부족 시 cluster 흐트림</li>
+<li>v0.1 smoke 의 "finalize ≈ online DER" 패턴은 v0.2 clean 환경에서 <strong>재현 안 됨</strong> — PLAN-005 boundary 불일치 환경의 신뢰도 부족 확인</li>
+<li><strong>wrapper 폐기 결정 (adr-01) 실증 검증 강화</strong> — legacy 직접 측정에서도 baseline 못 이김</li>
 </ul>
 </div>
 
 <div class="phase done">
-<h3>Phase 2b — Legacy Scheduler Comparison <span class="status done">DONE</span></h3>
+<h3>Phase 3 — 실시간 환경 Ablation + demo 구현 <span class="status done">DONE</span></h3>
 <ul>
-<li>📊 <a href="phase2b-legacy-20260522.html">Phase 2b HTML (32 rows, 8 scheduler 통합 비교)</a> ⭐</li>
-<li>입력: pyannote/embedding + ecapa-tdnn (w=2.0 s=0.5) — Phase 2 + 3 legacy variant 통합</li>
-<li>legacy 3종: legacy-adaptive (AdaptiveReclusterScheduler) / legacy-final (FinalReclusterer HDBSCAN+Hungarian) / legacy-both (adaptive→final)</li>
-<li>측정: 2 후보 × 3 legacy × 2 sample = 12 rows (에러 0) → Phase 2 20 rows + Phase 2b 12 rows = 32 rows 통합 비교</li>
-<li>📄 <a href="../../../reports/PLAN-V02-T-009-engine-core.md">PLAN-V02-T-009 결과 리포트</a></li>
+<li>📊 <a href="v03-realtime-20260523.html">Phase 3 Realtime HTML (4 rows, 라이브 latency / online DER 차트)</a> ⭐</li>
+<li>입력: pyannote/embedding + ecapa-tdnn × record_1.wav + record_3.wav = 4 rows</li>
+<li>측정: 슬라이딩 윈도우 수동 루프 (StreamingInference X), frame-level DER</li>
+<li>📄 Raw JSON: <code>eval/ablation/results/v03/v03-realtime-20260523_224452.json</code></li>
+<li>📝 Retrospective: <a href="../../../medi_docs/current/retrospective/v03-realtime.md">v03-realtime.md</a></li>
+<li>✅ 시간 overlap mapping 구현 (<code>examples/demo_v03.py</code>) — placeholder auto:A 제거</li>
 </ul>
 <p><strong>핵심 발견</strong>:</p>
 <ul>
-<li><strong>legacy-adaptive</strong>: 소폭 중립 효과 — pyannote avg 0.195 (−0.4pp), ecapa avg 0.203 (−0.3pp). 채택 기준 ≥2pp 미달</li>
-<li><strong>legacy-final (HDBSCAN+Hungarian)</strong>: ecapa-tdnn 대폭 악화 (+10pp). pyannote 소폭 악화 (+1pp) — 채택 불가</li>
-<li><strong>legacy-both</strong>: final 패스가 지배 — legacy-final 과 동일 결과</li>
-<li><strong>결론</strong>: 8 scheduler 모두 채택 기준 미달. baseline (diart default) 최종 확정</li>
-<li>v0.1 smoke 의 "finalize ≈ online DER" 패턴은 v0.2 clean 환경에서 재현되지 않음 — FinalReclusterer 실측 악화</li>
+<li><strong>pyannote/embedding 1순위 재확인</strong> — live avg DER 0.224 vs ecapa 0.260</li>
+<li>두 모델 모두 CPU에서 real-time 대비 ~38× 빠름 (real-time 운영 가능)</li>
+<li>ecapa-tdnn mid-session DER 급등 주의 (record_1 @ 60s: 0.528)</li>
+<li>pyannote/embedding online DER 안정화 패턴 확인 — 운영 최종 결정</li>
+<li>v0.2 offline 결정 (pyannote 1순위) 라이브 환경에서 재검증 통과</li>
 </ul>
-</div>
-
-<div class="phase pending">
-<h3>Phase 3 — demo 구현 <span class="status pending">PENDING</span></h3>
-<ul>
-<li>Phase 2 결과 후 별도 plan 분리</li>
-<li>diart + 선택 embedding + ElevenLabs STT + UI 4-panel</li>
-<li>운영 환경 enrollment (Phase 4) 는 out of v0.2 scope</li>
-</ul>
+<table class="summary-table" style="margin-top:10px">
+<tr><th>Embedding</th><th>Sample</th><th>Final DER</th><th>Latency p50</th><th>RAM peak</th></tr>
+<tr><td>pyannote/embedding</td><td>record_1.wav</td><td><strong>0.159 ⭐</strong></td><td>−131.7s</td><td>769 MB</td></tr>
+<tr><td>pyannote/embedding</td><td>record_3.wav</td><td>0.288</td><td>−80.5s</td><td>595 MB</td></tr>
+<tr><td>ecapa-tdnn</td><td>record_1.wav</td><td>0.237</td><td>−114.6s</td><td>557 MB</td></tr>
+<tr><td>ecapa-tdnn</td><td>record_3.wav</td><td>0.282</td><td>−69.8s</td><td>447 MB</td></tr>
+</table>
 </div>
 
 <h2>📚 문서 인덱스</h2>
