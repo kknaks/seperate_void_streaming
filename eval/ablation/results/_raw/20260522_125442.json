@@ -1,0 +1,245 @@
+[
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 2.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.8558287971360702,
+      "initial_cluster_latency_s": 2.808333333333333,
+      "labeling_latency_p50_s": 0.1,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5555555555555556,
+      "cpu_peak_pct": 190.1,
+      "cpu_avg_pct": 134.47570093457944,
+      "ram_peak_mb": 576.897024,
+      "ram_avg_mb": 390.37197238629284,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 644.7524775830097
+    },
+    "error": null,
+    "timestamp": "2026-05-22T04:05:33.361948+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 2.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.5342183605649401,
+      "initial_cluster_latency_s": 2.7583333333333333,
+      "labeling_latency_p50_s": 0.25,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5717592592592593,
+      "cpu_peak_pct": 193.3,
+      "cpu_avg_pct": 155.61189083820662,
+      "ram_peak_mb": 478.035968,
+      "ram_avg_mb": 398.41068612865496,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 515.4552753751632
+    },
+    "error": null,
+    "timestamp": "2026-05-22T04:14:08.834854+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.1321776101897303,
+      "initial_cluster_latency_s": 2.5603448275862073,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5567879325643301,
+      "cpu_peak_pct": 188.3,
+      "cpu_avg_pct": 156.02734375,
+      "ram_peak_mb": 491.126784,
+      "ram_avg_mb": 409.410848,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 514.8025114999618
+    },
+    "error": null,
+    "timestamp": "2026-05-22T04:22:43.648629+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 3.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.8884155611147369,
+      "initial_cluster_latency_s": 2.565340909090909,
+      "labeling_latency_p50_s": 0.1,
+      "labeling_latency_p95_s": 3.0,
+      "label_consistency": 0.6626984126984128,
+      "cpu_peak_pct": 201.7,
+      "cpu_avg_pct": 165.47726597325408,
+      "ram_peak_mb": 597.1968,
+      "ram_avg_mb": 461.4853283566122,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 676.9194621250499
+    },
+    "error": null,
+    "timestamp": "2026-05-22T04:34:00.556207+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 3.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.5633785167056712,
+      "initial_cluster_latency_s": 2.565340909090909,
+      "labeling_latency_p50_s": 0.25,
+      "labeling_latency_p95_s": 3.0,
+      "label_consistency": 0.6260869565217391,
+      "cpu_peak_pct": 176.2,
+      "cpu_avg_pct": 165.85991124260354,
+      "ram_peak_mb": 561.987584,
+      "ram_avg_mb": 451.71187275739646,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 679.9541810001247
+    },
+    "error": null,
+    "timestamp": "2026-05-22T04:45:20.522561+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 3.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.15162714550963433,
+      "initial_cluster_latency_s": 2.565340909090909,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 3.0,
+      "label_consistency": 0.5976190476190476,
+      "cpu_peak_pct": 176.5,
+      "cpu_avg_pct": 162.31183844011142,
+      "ram_peak_mb": 562.364416,
+      "ram_avg_mb": 427.21519598885794,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 720.6268365830183
+    },
+    "error": null,
+    "timestamp": "2026-05-22T04:57:21.161386+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 5.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.8879867204351274,
+      "initial_cluster_latency_s": 2.5170648464163827,
+      "labeling_latency_p50_s": 0.1,
+      "labeling_latency_p95_s": 5.0,
+      "label_consistency": 0.6333333333333333,
+      "cpu_peak_pct": 214.7,
+      "cpu_avg_pct": 160.37970882620564,
+      "ram_peak_mb": 550.731776,
+      "ram_avg_mb": 428.04562600181987,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 1102.9455312089995
+    },
+    "error": null,
+    "timestamp": "2026-05-22T05:15:44.125994+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 5.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.5700226700989589,
+      "initial_cluster_latency_s": 2.5170648464163827,
+      "labeling_latency_p50_s": 0.25,
+      "labeling_latency_p95_s": 5.0,
+      "label_consistency": 0.6159420289855072,
+      "cpu_peak_pct": 189.1,
+      "cpu_avg_pct": 161.7153713298791,
+      "ram_peak_mb": 544.44032,
+      "ram_avg_mb": 431.7022423765112,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 1161.952338791918
+    },
+    "error": null,
+    "timestamp": "2026-05-22T05:35:06.098603+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 5.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.23531777275675161,
+      "initial_cluster_latency_s": 2.5170648464163827,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 5.0,
+      "label_consistency": 0.5064616755793226,
+      "cpu_peak_pct": 189.3,
+      "cpu_avg_pct": 159.52920203735147,
+      "ram_peak_mb": 556.97408,
+      "ram_avg_mb": 426.690695606112,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 1182.3545017500874
+    },
+    "error": null,
+    "timestamp": "2026-05-22T05:54:48.402346+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  }
+]

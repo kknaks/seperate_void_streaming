@@ -1,0 +1,110 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "decay-A",
+    "metrics": {
+      "der": 0.17620776345505595,
+      "initial_cluster_latency_s": 2.5086206896551726,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.41993620414673044,
+      "cpu_peak_pct": 192.1,
+      "cpu_avg_pct": 157.95238095238093,
+      "ram_peak_mb": 610.025472,
+      "ram_avg_mb": 255.5139413333333,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 21.06630820897408
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:34:17.599495+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "decay-B",
+    "metrics": {
+      "der": 0.1951919516953309,
+      "initial_cluster_latency_s": 2.5603448275862073,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5208695652173914,
+      "cpu_peak_pct": 185.2,
+      "cpu_avg_pct": 155.21304347826086,
+      "ram_peak_mb": 304.185344,
+      "ram_avg_mb": 234.69581356521735,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 23.087829625001177
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:34:40.689176+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "hdbscan-on",
+    "metrics": {
+      "der": 0.14432679659374106,
+      "initial_cluster_latency_s": 3.5086206896551726,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.4996940024479804,
+      "cpu_peak_pct": 191.6,
+      "cpu_avg_pct": 163.33636363636364,
+      "ram_peak_mb": 313.884672,
+      "ram_avg_mb": 241.61484799999997,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 22.09424883290194
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:35:02.790271+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "hdbscan-off",
+    "metrics": {
+      "der": 0.13786851598086317,
+      "initial_cluster_latency_s": 2.5603448275862073,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5614415979157621,
+      "cpu_peak_pct": 190.1,
+      "cpu_avg_pct": 156.21818181818182,
+      "ram_peak_mb": 318.2592,
+      "ram_avg_mb": 229.45866472727275,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 22.052625166019425
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:35:24.851578+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  }
+]

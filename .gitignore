@@ -40,3 +40,13 @@ samples/*.rttm
 !samples/.gitkeep
 tests/data/ami/
 tests/eval/results.jsonl
+
+# v0.4: Obsidian / IDE state
+.obsidian/
+
+# v0.4: Large raw audio (use git-lfs if needed)
+medi_docs/current/runbook/*.wav
+eval/data/korean/raw/*.wav
+
+# v0.4: literal '~/' leftover dir
+/~/

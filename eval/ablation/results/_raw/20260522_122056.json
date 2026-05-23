@@ -1,0 +1,974 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 1.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.458513+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 1.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.458682+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 1.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.458789+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.458899+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.459017+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.459141+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 3.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.459283+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 3.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.459441+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 3.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.459620+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 5.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.459793+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 5.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.459974+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 5.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T03:20:56.460165+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 1.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.460967+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 1.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.461419+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 1.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.461733+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.462035+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.462353+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.462684+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 3.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.463017+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 3.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.463406+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 3.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.463749+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 5.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.464109+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 5.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.464476+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 5.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "hf_hub_download() got an unexpected keyword argument 'use_auth_token'",
+    "timestamp": "2026-05-22T03:20:56.464849+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 1.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:02.314112+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 1.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:03.320048+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 1.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:04.323019+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 2.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:05.327694+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 2.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:06.339900+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:07.346969+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 3.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:08.351588+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 3.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:09.356739+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 3.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:10.366222+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 5.0,
+    "step_s": 0.1,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:11.373946+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 5.0,
+    "step_s": 0.25,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:12.382117+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "wespeaker-resnet152",
+    "window_s": 5.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 210, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv-py311/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nTypeError: hf_hub_download() got an unexpected keyword argument 'use_auth_token'\n",
+    "timestamp": "2026-05-22T03:21:13.390054+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  }
+]

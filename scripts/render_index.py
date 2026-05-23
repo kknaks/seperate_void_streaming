@@ -57,9 +57,17 @@ footer {{ margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color
 </head>
 <body>
 
-<h1>🎙 void_streaming v0.2 — Ablation Study INDEX</h1>
+<h1>🎙 void_streaming v0.4 — INDEX</h1>
 <p class="muted">Generated: {generated_at}</p>
-<p>한국어 회의/상담 도메인에서 화자 분리 정확도 최적화 — embedding × window × scheduler ablation study + 결과 기반 단순 demo.</p>
+<p>한국어 회의 도메인 화자 분리 + 실시간 STT 자막 + 라이브 화자 라벨링 demo. v0.2 (ablation) → v0.3 (라이브 매핑) → v0.4 (라이브 latency + 운영 가이드).</p>
+
+<div style="background: #fff3cd; border-left: 6px solid #f0ad4e; padding: 20px 25px; margin: 25px 0; border-radius: 4px;">
+<h2 style="margin-top: 0; color: #8a6d3b; border: none;">⭐ 운영 배포 가이드 — 결론</h2>
+<p style="font-size: 15px;"><strong>설정</strong>: <code>pyannote/embedding × window=2.0s × step=0.5s × baseline scheduler × CPU</code></p>
+<p style="font-size: 15px;"><strong>Azure VM</strong>: <strong>Standard B2s</strong> (2 vCPU, 4GB RAM, ~$30/월)</p>
+<p style="font-size: 15px;"><strong>SLA</strong>: STT 자막 ~0.5s · 라이브 라벨링 p50 <strong>1.5s</strong> / p95 <strong>2.4s</strong> · DER ~0.20 · CPU 38× realtime</p>
+<p style="font-size: 16px; margin-top: 15px;">📘 <a href="v04-operational-guide.html" style="color: #8a6d3b; font-weight: bold;">전체 운영 가이드 보기 →</a></p>
+</div>
 
 <h2>📊 핵심 결과 요약</h2>
 
@@ -77,107 +85,77 @@ footer {{ margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color
 <tr><td>ecapa-tdnn</td><td>0.205</td><td>46s</td><td>✅ CPU 실시간 OK (일관성 최고)</td></tr>
 </table>
 
-<p class="muted">상세 분석:
-<a href="phase1-analysis.html">Phase 1 분석</a> ·
-<a href="v02-final.html"><strong>v0.2 최종 종합 ⭐</strong></a>
-</p>
+<p class="muted">상세 분석: <a href="v02-final.html"><strong>v0.2 최종 종합 ⭐</strong></a> · <a href="phase1-analysis.html">Phase 1 분석</a></p>
+
+<h2>📁 Phase 별 산출물</h2>
 
 <h2>📁 Phase 별 산출물</h2>
 
 <div class="phase done">
-<h3>Phase 0 — 환경 구축 <span class="status done">DONE</span></h3>
+<h3>Phase 0~1 — Embedding × Window × Step ablation <span class="status done">DONE</span></h3>
 <ul>
-<li>4 embedding 모델 wrap (pyannote / ECAPA-TDNN / WeSpeaker, TitaNet-L 폐기)</li>
-<li>한국어 데이터셋 + RTTM ground truth (자동 생성)
-  <ul>
-    <li>📁 <a href="../../data/korean/record_1.wav">record_1.wav</a> (277.5s) + <a href="../../data/korean/record_1.rttm">record_1.rttm</a></li>
-    <li>🔍 <a href="../../data/korean/record_1_viewer.html">record_1 RTTM viewer</a></li>
-    <li>📁 <a href="../../data/korean/record_3.wav">record_3.wav</a> (168.2s) + <a href="../../data/korean/record_3.rttm">record_3.rttm</a></li>
-    <li>🔍 <a href="../../data/korean/record_3_viewer.html">record_3 RTTM viewer</a></li>
-  </ul>
-</li>
-<li>📜 scripts/eval_ablation.py + scripts/render_report.py</li>
-<li>📜 scripts/rttm_viewer.py + scripts/generate_rttm.py + scripts/render_index.py</li>
-</ul>
-</div>
-
-<div class="phase done">
-<h3>Phase 1 — embedding × window × step grid <span class="status done">DONE</span></h3>
-<ul>
-<li>📊 <a href="phase1-full-20260522.html">Phase 1 Full HTML (72 rows, 차트 + sortable table)</a> ⭐</li>
-<li>📊 <a href="phase1-pilot-20260522.html">Phase 1 Pilot HTML (record_1 36 rows)</a></li>
-<li>📊 <a href="phase1-partial-20260522.html">Phase 1 Partial HTML</a></li>
-<li>📄 <a href="phase1-analysis.html">Phase 1 분석 보고서 (markdown 기반)</a></li>
-<li>📑 Raw JSON: <code>eval/ablation/results/20260522_*.json</code> (5 files) + <code>all.csv</code></li>
+<li>📊 <a href="phase1-full-20260522.html"><strong>Phase 1 Full HTML (72 rows)</strong> ⭐</strong></a> — 차트 + sortable table</li>
+<li>📄 <a href="phase1-analysis.html">Phase 1 분석 보고서</a></li>
+<li>측정: 3 embedding (pyannote / ecapa-tdnn / wespeaker) × 4 window × 3 step × 2 sample = 72 rows</li>
 </ul>
 <p><strong>핵심 발견</strong>:</p>
 <ul>
 <li><strong>step=0.5 압도적 우위</strong> — step=0.1/0.25 는 DER 0.85+ (실용 불가)</li>
 <li><strong>window=2.0 최적</strong> — 전 모델 공통</li>
-<li>북극성 (DER ≤ 0.15) 미달 — best 17.6% (wespeaker CPU)</li>
-<li>record_3 DER 전반 높음 — sample 난이도 vs RTTM 품질 검증 진행 중</li>
+<li>북극성 (DER ≤ 0.15) 미달 — best 17.6% (wespeaker CPU 비실용)</li>
 </ul>
 </div>
 
 <div class="phase done">
-<h3>Phase 2 — scheduler ablation <span class="status done">DONE</span></h3>
+<h3>Phase 2 — Scheduler ablation (8 variant 통합) <span class="status done">DONE</span></h3>
 <ul>
-<li>📊 <a href="phase2-20260522.html">Phase 2 HTML (20 rows, scheduler 비교 차트)</a> ⭐</li>
-<li>입력: pyannote/embedding + ecapa-tdnn (w=2.0 s=0.5)</li>
-<li>scheduler 5종: baseline / decay-A / decay-B / hdbscan-on / hdbscan-off</li>
-<li>측정: 2 후보 × 5 scheduler × 2 sample = 20 rows (에러 0)</li>
-<li>📄 <a href="../../../reports/PLAN-V02-T-007-evaluator.md">PLAN-V02-T-007 결과 리포트</a></li>
+<li>📊 <a href="phase2-final-20260522.html"><strong>Phase 2 최종 HTML (32 rows, 8 scheduler)</strong> ⭐</a></li>
+<li>5 정적 variant + 3 legacy 동적 variant (AdaptiveReclusterScheduler / FinalReclusterer HDBSCAN / both)</li>
+<li>측정: 2 embedding × (5+3) scheduler × 2 sample = 32 rows</li>
 </ul>
 <p><strong>핵심 발견</strong>:</p>
 <ul>
-<li><strong>scheduler 효과 미미</strong> — 어떤 variant도 2pp 이상 DER 개선 없음 (채택 기준 미달)</li>
-<li>decay-A: 전 모델 악화 (avg +6.5pp). decay-B: 소폭 악화 (+2.1pp)</li>
-<li>hdbscan-on: pyannote 소폭 개선 (−0.3pp), ecapa-tdnn 대폭 악화 (+8.4pp) — 비일관성</li>
-<li><strong>결론</strong>: baseline (diart default) 채택 권고. 북극성 DER ≤ 0.15 미달, Phase 3 또는 GPU 환경 검토 필요</li>
+<li><strong>8 variant 모두 baseline 못 이김</strong> (≥2pp 기준 미달) → baseline 채택 확정</li>
+<li>legacy-adaptive: 유일하게 양 모델 평균 개선 (−0.3~−0.5pp), 기준 미달</li>
+<li>legacy-final (HDBSCAN): ecapa-tdnn +10pp 악화</li>
+<li>📄 <a href="v02-final.html"><strong>v0.2 ablation 최종 종합</strong></a></li>
 </ul>
 </div>
 
 <div class="phase done">
-<h3>Phase 2b — Legacy Scheduler Comparison <span class="status done">DONE</span></h3>
+<h3>Phase 3 — 라이브 매핑 검증 <span class="status done">DONE</span></h3>
 <ul>
-<li>📊 <a href="phase2b-legacy-20260522.html">Phase 2b HTML (32 rows, 8 scheduler 통합 비교)</a> ⭐</li>
-<li>입력: pyannote/embedding + ecapa-tdnn (w=2.0 s=0.5) — Phase 2 + 3 legacy variant 통합</li>
-<li>legacy 3종: legacy-adaptive (AdaptiveReclusterScheduler) / legacy-final (FinalReclusterer HDBSCAN+Hungarian) / legacy-both (adaptive→final)</li>
-<li>측정: 2 후보 × 3 legacy × 2 sample = 12 rows (에러 0) → Phase 2 20 rows + Phase 2b 12 rows = 32 rows 통합 비교</li>
-<li>📄 <a href="../../../reports/PLAN-V02-T-009-engine-core.md">PLAN-V02-T-009 결과 리포트</a></li>
-</ul>
-<p><strong>핵심 발견</strong>:</p>
-<ul>
-<li><strong>legacy-adaptive</strong>: 소폭 중립 효과 — pyannote avg 0.195 (−0.4pp), ecapa avg 0.203 (−0.3pp). 채택 기준 ≥2pp 미달</li>
-<li><strong>legacy-final (HDBSCAN+Hungarian)</strong>: ecapa-tdnn 대폭 악화 (+10pp). pyannote 소폭 악화 (+1pp) — 채택 불가</li>
-<li><strong>legacy-both</strong>: final 패스가 지배 — legacy-final 과 동일 결과</li>
-<li><strong>결론</strong>: 8 scheduler 모두 채택 기준 미달. baseline (diart default) 최종 확정</li>
-<li>v0.1 smoke 의 "finalize ≈ online DER" 패턴은 v0.2 clean 환경에서 재현되지 않음 — FinalReclusterer 실측 악화</li>
+<li>📊 <a href="v03-realtime-20260523.html">v0.3 라이브 ablation HTML</a> — 4 rows (2 embedding × 2 sample) 라이브 환경</li>
+<li><strong>demo_v03.py</strong> — diart + ElevenLabs STT + 시간 overlap mapping + UI 4-panel</li>
+<li>시연 81 phrase: 초기 50초 cluster 형성 후 <strong>stable (A=고객 / B=상담사)</strong></li>
+<li>pyannote 라이브 DER 0.224 — 1순위 재확인</li>
 </ul>
 </div>
 
-<div class="phase pending">
-<h3>Phase 3 — demo 구현 <span class="status pending">PENDING</span></h3>
+<div class="phase done">
+<h3>Phase 4 — 라이브 latency + 운영 가이드 <span class="status done">DONE</span></h3>
 <ul>
-<li>Phase 2 결과 후 별도 plan 분리</li>
-<li>diart + 선택 embedding + ElevenLabs STT + UI 4-panel</li>
-<li>운영 환경 enrollment (Phase 4) 는 out of v0.2 scope</li>
+<li>📘 <a href="v04-operational-guide.html"><strong>⭐ v0.4 운영 가이드 (Azure 배포 권장)</strong></a></li>
+<li>📄 <a href="v04-live-latency.html">v0.4 라이브 latency retrospective</a></li>
+<li>측정: pyannote × record_1 (p50 1.51s) + record_3 (p50 1.58s)</li>
+<li>v0.3 음수 latency 공식 보정 → 진짜 wall-clock 측정</li>
+<li><strong>운영 배포 가능 수준 확정</strong> — Azure B2s (2vCPU/4GB) 권장</li>
 </ul>
 </div>
 
-<h2>📚 문서 인덱스</h2>
+<h2>📚 산출물 인덱스</h2>
 
 <table class="summary-table">
-<tr><th>분류</th><th>문서</th><th>설명</th></tr>
-<tr><td rowspan="2">adr</td><td><a href="../../../medi_docs/current/adr/adr-01-ablation-centric-design.md">adr-01</a></td><td>wrapper 폐기 + ablation-centric 정체성</td></tr>
-<tr><td><a href="../../../medi_docs/current/adr/adr-02-html-report.md">adr-02</a></td><td>HTML report 공유 (본 INDEX 의 근거)</td></tr>
-<tr><td>planning</td><td><a href="../../../medi_docs/current/planning/planning-01-ablation-study.md">planning-01</a></td><td>v0.2 큰 그림 plan</td></tr>
-<tr><td rowspan="3">plan</td><td><a href="../../../medi_docs/current/plan/PLAN-V02-001-phase0-env-setup.md">PLAN-V02-001</a></td><td>Phase 0 환경 구축</td></tr>
-<tr><td><a href="../../../medi_docs/current/plan/PLAN-V02-002-phase1-grid.md">PLAN-V02-002</a></td><td>Phase 1 grid</td></tr>
-<tr><td><a href="../../../medi_docs/current/plan/PLAN-V02-003-phase2-scheduler.md">PLAN-V02-003</a></td><td>Phase 2 scheduler</td></tr>
-<tr><td>spec</td><td><a href="../../../medi_docs/current/spec/">spec-01 ~ spec-06</a></td><td>grid / embedding interface / scripts / metric</td></tr>
-<tr><td>retrospective</td><td><a href="phase1-analysis.html">phase1-analysis</a></td><td>Phase 1 분석 보고서</td></tr>
-<tr><td>legacy</td><td><a href="../../../medi_docs/legacy/v0.1-demo/">v0.1-demo</a></td><td>폐기된 PLAN-001~006 자료 보존</td></tr>
+<tr><th>분류</th><th>파일</th><th>설명</th></tr>
+<tr><td rowspan="2"><strong>⭐ 결론</strong></td><td><a href="v04-operational-guide.html">v04-operational-guide.html</a></td><td><strong>운영 배포 가이드 (Azure VM + 설정값 + SLA)</strong></td></tr>
+<tr><td><a href="v02-final.html">v02-final.html</a></td><td>v0.2 ablation 최종 종합 (최적 조합 박제)</td></tr>
+<tr><td rowspan="4">ablation HTML</td><td><a href="phase1-full-20260522.html">phase1-full</a></td><td>72 rows embedding × window × step</td></tr>
+<tr><td><a href="phase2-final-20260522.html">phase2-final</a></td><td>32 rows 8 scheduler 비교</td></tr>
+<tr><td><a href="v03-realtime-20260523.html">v03-realtime</a></td><td>4 rows 라이브 환경 재측정</td></tr>
+<tr><td><a href="v04-live-latency.html">v04-live-latency</a></td><td>라이브 wall-clock latency</td></tr>
+<tr><td rowspan="2">분석</td><td><a href="phase1-analysis.html">phase1-analysis</a></td><td>Phase 1 분석 보고서</td></tr>
+<tr><td><a href="v04-live-latency.html">v04-live-latency</a></td><td>v0.4 latency retrospective</td></tr>
+<tr><td>raw 데이터</td><td><code>_raw/</code></td><td>측정 JSON / CSV 누적 (Phase 1/2/v03/v04)</td></tr>
 </table>
 
 <footer>
@@ -268,6 +246,24 @@ def main():
             final_md,
             results_dir / "v02-final.html",
             "v0.2 Ablation Study 최종 종합",
+        )
+
+    # v0.4 라이브 latency
+    v04_lat_md = RETROSPECTIVE / "v04-live-latency.md"
+    if v04_lat_md.exists():
+        render_markdown_to_html(
+            v04_lat_md,
+            results_dir / "v04-live-latency.html",
+            "v0.4 Phase 4 — 진짜 라이브 latency",
+        )
+
+    # v0.4 운영 가이드 (release-notes)
+    op_guide_md = ROOT / "medi_docs" / "current" / "release-notes" / "v04-operational-guide.md"
+    if op_guide_md.exists():
+        render_markdown_to_html(
+            op_guide_md,
+            results_dir / "v04-operational-guide.html",
+            "void_streaming v0.4 — 운영 가이드",
         )
 
     # INDEX HTML

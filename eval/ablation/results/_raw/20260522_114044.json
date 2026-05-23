@@ -1,0 +1,29 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 5.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.21664352027975198,
+      "initial_cluster_latency_s": 2.5170648464163827,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 5.0,
+      "label_consistency": 0.49489795918367346,
+      "cpu_peak_pct": 198.4,
+      "cpu_avg_pct": 172.93783783783783,
+      "ram_peak_mb": 778.81344,
+      "ram_avg_mb": 296.82494270270274,
+      "cold_load_s": 0.7246626659762114,
+      "total_runtime_s": 37.15389295807108
+    },
+    "error": null,
+    "timestamp": "2026-05-22T02:41:22.866311+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  }
+]

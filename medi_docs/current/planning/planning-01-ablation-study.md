@@ -1,13 +1,13 @@
 ---
-id: plan-01
-type: plan
+id: planning-01
+type: planning
 title: PLAN-V02 — Embedding × Window × Scheduler Ablation Study
 status: draft
 created: 2026-05-22
 updated: 2026-05-22
 sources:
   - "[[adr-01-ablation-centric-design]]"
-tags: [plan, v0.2, ablation, diarization, korean]
+tags: [planning, v0.2, ablation, diarization, korean]
 ---
 
 # PLAN-V02 — Embedding × Window × Scheduler Ablation Study
@@ -50,9 +50,10 @@ v0.1-demo (PLAN-001~006 STT-driven chain + speaker_engine wrapper) 폐기.
 | 라벨 일관성 | 자체 측정 | 동일 화자 라벨 변동률 |
 | **CPU 사용률** | `psutil` | per-second peak + average |
 | **RAM 사용량** | `psutil` | peak + average (MB) |
-| **GPU 사용률** | `pynvml` / `nvidia-smi` | peak + average (%) — GPU 환경 시 |
-| **GPU 메모리** | `pynvml` | peak (MB) — GPU 환경 시 |
 | **모델 cold-load 시간** | 자체 측정 | embedding 모델 첫 로드 latency |
+| **total runtime** | wall-clock | combination 1회 처리 시간 |
+
+> **GPU 측정 제외**: Azure CPU instance 운영 가정. 모든 모델 `device="cpu"` 강제로 일관 측정. GPU instance 채택 결정 시 deployment 단계에서 별도 측정.
 
 ### 0.3 평가 스크립트
 
@@ -65,14 +66,14 @@ v0.1-demo (PLAN-001~006 STT-driven chain + speaker_engine wrapper) 폐기.
 
 ## Phase 1 — embedding × window ablation
 
-### 1.1 embedding 후보 (4종)
+### 1.1 embedding 후보 (3종)
 
 | 모델 | dim | 권장 window | 비고 |
 |------|-----|------------|------|
 | pyannote/embedding | 512 | 3~5s | baseline |
 | ECAPA-TDNN (SpeechBrain) | 192 | 1~2s | 경량 |
-| WeSpeaker ResNet152 | 256 | 1s+ | 오픈소스 |
-| TitaNet-L (NeMo) | 192 | 0.5~1s | NeMo 의존 — 포함 결정 (admin 2026-05-22) |
+| WeSpeaker ResNet-221 (`voxceleb_resnet221_LM`) | 256 | 1s+ | 오픈소스 |
+| ~~TitaNet-L (NeMo)~~ | ~~192~~ | ~~0.5~1s~~ | **폐기 (admin 2026-05-22)** — nemo_toolkit ↔ diart torch 버전 충돌 (nemo 2.7.3 requires torch>=2.6, 프로젝트 torch==2.1) |
 
 ### 1.2 window 후보 (4종)
 
@@ -85,9 +86,10 @@ v0.1-demo (PLAN-001~006 STT-driven chain + speaker_engine wrapper) 폐기.
 ### 1.4 grid size
 
 ```
-4 embedding × 4 window × 3 step = 48 combinations
-AMI 4 session × 한국어 N sample = 4+N samples
-총 measurement: 48 × (4+N)  — 추정 1~2시간 GPU 또는 수시간 CPU
+3 embedding × 4 window × 3 step = 36 combinations
+한국어 sample 2개 (record_1, record_3) — AMI 생략
+총 measurement: 36 × 2 = 72 rows
+추정 시간: ~45분 CPU (smoke 37s × 72)
 ```
 
 ### 1.5 결과 표
@@ -139,13 +141,12 @@ ablation 결과 기반 단순 demo (별도 plan 분리):
 
 | T | 작업 | 워커 | 상태 |
 |---|------|------|------|
-| T-003 | spec suite 작성 (ablation grid + embedding interface + eval script + report + dataset + metrics) | architect | **done** (PLAN-V02-T-003) |
-| T-004 | Phase 0 환경 구축 — 4 모델 install + 데이터셋 + eval_ablation.py 구현 | evaluator | 예정 |
-| T-005 | Phase 1 — embedding × window grid 실행 + JSON 결과 | evaluator | 예정 |
-| T-006 | Phase 1 결과 분석 + 최적 후보 선정 | admin | 예정 |
-| T-007 | Phase 2 — scheduler ablation | evaluator | 예정 |
-| T-008 | Phase 2 결과 + 종합 분석 + 최적 조합 결정 | admin | 예정 |
-| T-009 (선택) | Phase 3 demo 구현 plan 분리 | architect | 예정 |
+| T-003 | spec suite 작성 (spec-01~06) | architect | **done** (PLAN-V02-T-003) |
+| T-004 | 실행 단위 plan 작성 (Phase 0/1/2) | architect | **done** (PLAN-V02-T-004) |
+| Phase 0 | 환경 구축 — 모델 wrap + 데이터셋 + eval/render 구현 + e2e smoke | evaluator | → **[PLAN-V02-001](../plan/PLAN-V02-001-phase0-env-setup.md)** |
+| Phase 1 | embedding × window grid 48조합 측정 + HTML report + 최적 선정 | evaluator + admin | → **[PLAN-V02-002](../plan/PLAN-V02-002-phase1-grid.md)** |
+| Phase 2 | scheduler 4종 ablation + HTML report + 최종 결정 박제 | evaluator + admin | → **[PLAN-V02-003](../plan/PLAN-V02-003-phase2-scheduler.md)** |
+| Phase 3 (선택) | demo 구현 plan 분리 | architect | Phase 2 결과 후 결정 |
 
 ---
 
@@ -187,10 +188,11 @@ flowchart TD
     C --> D["DER 측정<br/>pyannote.metrics"]
     C --> E["latency 측정<br/>초기 cluster + 라벨링"]
     C --> F[라벨 일관성]
-    C --> R["리소스 측정<br/>CPU / RAM / GPU% / GPU mem"]
+    C --> R["리소스 측정<br/>CPU / RAM (CPU instance 기준)"]
     C --> S[모델 cold-load 시간]
-    D & E & F & R & S --> G[결과 CSV / JSON]
-    G --> H["최적 후보 3~5개 선정<br/>(정확도 + 비용 trade-off)"]
+    C --> T[total runtime]
+    D & E & F & R & S & T --> G[결과 CSV / JSON]
+    G --> H["최적 후보 3~5개 선정<br/>(정확도 + CPU/RAM 비용 trade-off)"]
 ```
 
 ## 아키텍처 흐름 (Phase 2)

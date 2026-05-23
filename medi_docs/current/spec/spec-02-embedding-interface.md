@@ -93,11 +93,11 @@ class EcapaTdnnEmbedding:
 
 ```python
 class WeSpeakerEmbedding:
-    name = "wespeaker-resnet152"
+    name = "wespeaker-resnet221"
     dim = 256
 
-    # 내부: wespeaker pretrained ResNet152
-    #   model_name="wespeaker/wespeaker-resnet152-voxblink-voxceleb"
+    # 내부: wespeaker pretrained ResNet-221
+    #   model_name="wespeaker/wespeaker-resnet221-voxblink-voxceleb"
     # download cache: ~/.cache/wespeaker/
 ```
 
@@ -118,20 +118,23 @@ class TitaNetLEmbedding:
 
 ## Device 선택 로직
 
-`load(device="auto")` 시 우선순위:
+**Ablation 측정 표준: `device="cpu"` 강제** (2026-05-22 결정).
+
+사유: Azure CPU instance 운영 가정. ablation 결과의 리소스 측정값이 deployment 환경과 일치하도록.
 
 ```python
 def _resolve_device(device: str) -> str:
-    if device != "auto":
+    # ablation 측정은 cpu 강제
+    if device == "cpu":
+        return "cpu"
+    # 명시 cuda/mps 만 허용 (auto 폐기)
+    if device in ("cuda", "mps"):
         return device
-    if torch.cuda.is_available():
-        return "cuda"
-    if torch.backends.mps.is_available():
-        return "mps"
+    # default cpu
     return "cpu"
 ```
 
-MPS (Apple Silicon) 지원 여부는 모델별로 상이할 수 있음 → 실패 시 CPU fallback 허용.
+GPU instance 채택 결정 시 (별도 task / deployment 단계) `device="cuda"` 또는 `"mps"` 명시 호출.
 
 ---
 

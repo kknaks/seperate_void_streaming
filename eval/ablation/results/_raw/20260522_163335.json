@@ -1,0 +1,137 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "baseline",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T07:33:35.037344+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "decay-A",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T07:33:35.037532+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "decay-B",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T07:33:35.037640+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "hdbscan-on",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T07:33:35.037738+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "hdbscan-off",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T07:33:35.037855+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  }
+]

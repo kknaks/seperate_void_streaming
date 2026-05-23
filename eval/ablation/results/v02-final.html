@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>v0.2 Ablation Study 최종 종합</title>
+<style>
+body { font-family: -apple-system, sans-serif; max-width: 1000px; margin: 30px auto; padding: 20px; line-height: 1.7; color: #222; }
+h1 { border-bottom: 3px solid #4a90e2; padding-bottom: 10px; }
+h2 { color: #4a90e2; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+h3 { color: #333; margin-top: 25px; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+table th, table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+table th { background: #4a90e2; color: white; }
+table tr:nth-child(even) { background: #f9f9f9; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+pre { background: #f4f4f4; padding: 12px; border-radius: 4px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 4px solid #4a90e2; padding-left: 15px; color: #555; margin: 15px 0; }
+.nav { background: #f7f9fc; padding: 10px 20px; border-radius: 4px; margin-bottom: 20px; }
+.nav a { color: #4a90e2; text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="nav"><a href="INDEX.html">← v0.2 INDEX 로 돌아가기</a></div>
+<h1 id="v02-ablation-study-phase-1-phase-2">v0.2 Ablation Study 최종 종합 — Phase 1 + Phase 2</h1>
+<h2 id="tldr">TL;DR</h2>
+<p><strong>최종 최적 조합</strong>:</p>
+<pre><code>embedding   = pyannote/embedding
+window_s    = 2.0
+step_s      = 0.5
+scheduler   = baseline (diart OnlineSpeakerClustering 기본)
+device      = cpu (Azure CPU instance)
+</code></pre>
+<p><strong>측정 결과</strong>:<br />
+- DER avg <strong>0.199</strong> (북극성 ≤ 0.15 미달, 그러나 실시간 가능 후보 중 최선)<br />
+- runtime <strong>16s</strong> / 277s audio = <strong>0.06x realtime</strong> (실시간 OK)<br />
+- 초기 cluster latency 2.52s, labeling latency p50 0.5s<br />
+- CPU avg 162%, RAM avg 292MB</p>
+<p><strong>총 측정</strong>:<br />
+- Phase 1: 3 embedding × 4 window × 3 step × 2 sample = 72 rows<br />
+- Phase 2: 2 후보 × 5 scheduler × 2 sample = 20 rows (Phase 1 baseline 4 row 재사용)<br />
+- 합계: <strong>92 unique rows</strong></p>
+<hr />
+<h2 id="_1">결정 사항</h2>
+<h3 id="decision-1-pyannoteembedding-w20-s05-baseline">Decision 1 — 최종 최적 조합: pyannote/embedding × w=2.0 × s=0.5 × baseline</h3>
+<table>
+<thead>
+<tr>
+<th>기준</th>
+<th>pyannote ⭐</th>
+<th>ecapa-tdnn</th>
+<th>wespeaker-resnet221</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>best avg DER</td>
+<td><strong>0.199</strong></td>
+<td>0.205</td>
+<td>0.176 (CPU 비실용)</td>
+</tr>
+<tr>
+<td>runtime</td>
+<td><strong>16s</strong> ✓</td>
+<td>46s ✓</td>
+<td>368s ✗</td>
+</tr>
+<tr>
+<td>초기 latency</td>
+<td>2.52s ✓</td>
+<td>~3s ✓</td>
+<td>~5s</td>
+</tr>
+<tr>
+<td>라벨링 p50</td>
+<td>0.5s ✓</td>
+<td>0.5s ✓</td>
+<td>0.5s</td>
+</tr>
+<tr>
+<td>sample 분산</td>
+<td>0.123 (큼)</td>
+<td><strong>0.055</strong></td>
+<td>0.088</td>
+</tr>
+<tr>
+<td>운영 추천</td>
+<td><strong>1순위</strong></td>
+<td>2순위 (일관성 fallback)</td>
+<td>GPU 검토 별도</td>
+</tr>
+</tbody>
+</table>
+<p><strong>왜 pyannote</strong>:<br />
+- 유일하게 CPU 실시간 가능 (0.06x realtime)<br />
+- runtime 가장 빠름 (네이티브, no SpeechBrain/wespeaker overhead)<br />
+- 라벨링 latency 북극성 (≤ 3s) 통과</p>
+<p><strong>왜 ecapa-tdnn 2순위</strong>:<br />
+- sample 간 DER 분산 최저 (0.003) — 운영 환경 일관성 보장<br />
+- pyannote 실패 시 fallback</p>
+<h3 id="decision-2-scheduler-baseline-diart">Decision 2 — scheduler 채택: baseline (diart 기본)</h3>
+<p>Phase 2 + Phase 2b (legacy wrapper 진짜 측정) 결과:</p>
+<table>
+<thead>
+<tr>
+<th>scheduler</th>
+<th>pyannote avg</th>
+<th>ecapa avg</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>baseline</strong> ⭐</td>
+<td><strong>0.200</strong></td>
+<td><strong>0.206</strong></td>
+<td>채택</td>
+</tr>
+<tr>
+<td>decay-A</td>
+<td>0.273 (+7.3pp)</td>
+<td>0.261 (+5.5pp)</td>
+<td>정적 근사 — 악화</td>
+</tr>
+<tr>
+<td>decay-B</td>
+<td>0.231 (+3.1pp)</td>
+<td>0.216 (+1.0pp)</td>
+<td>정적 근사 — 소폭 악화</td>
+</tr>
+<tr>
+<td>hdbscan-off</td>
+<td>0.200 (±0)</td>
+<td>0.206 (±0)</td>
+<td>대조군</td>
+</tr>
+<tr>
+<td>hdbscan-on</td>
+<td>0.196 (−0.4pp)</td>
+<td>0.289 (+8.3pp)</td>
+<td>비일관</td>
+</tr>
+<tr>
+<td><strong>legacy-adaptive</strong></td>
+<td><strong>0.195 (−0.5pp)</strong></td>
+<td><strong>0.203 (−0.3pp)</strong></td>
+<td><strong>legacy 진짜 동적 — 미미 개선</strong></td>
+</tr>
+<tr>
+<td>legacy-final</td>
+<td>0.209 (+0.9pp)</td>
+<td>0.306 (+10.0pp)</td>
+<td>HDBSCAN 악화</td>
+</tr>
+<tr>
+<td>legacy-both</td>
+<td>0.209 (+0.9pp)</td>
+<td>0.306 (+10.0pp)</td>
+<td>final 덮어씀</td>
+</tr>
+</tbody>
+</table>
+<p><strong>왜 baseline</strong>:<br />
+- 8 variant (Phase 2 5 정적 근사 + Phase 2b 3 legacy 동적) 측정 → <strong>어떤 variant 도 ≥ 2pp 개선 못함</strong> (채택 기준 미달)<br />
+- legacy-adaptive 가 양 모델 평균 개선한 <strong>유일한 variant</strong> 지만 −0.3~−0.5pp 로 채택 기준 미달<br />
+- legacy-final (FinalReclusterer HDBSCAN) 이 ecapa-tdnn 에서 <strong>+10pp 대폭 악화</strong> — embedding 품질 부족 시 HDBSCAN 이 cluster 흐트림 패턴<br />
+- legacy v0.1 admin smoke 의 "finalize ≈ online DER" 결과는 v0.2 clean 환경에서 <strong>재현 안 됨</strong> — PLAN-005 boundary 불일치 환경 측정의 신뢰도 부족 확인<br />
+- → <strong>wrapper 폐기 결정 (adr-01) 실증 검증 강화</strong> — legacy 직접 측정에서도 baseline 못 이김</p>
+<h3 id="decision-3-titanet-l-wespeaker-gpu">Decision 3 — TitaNet-L 폐기 + wespeaker GPU 검토 별도</h3>
+<table>
+<thead>
+<tr>
+<th>모델</th>
+<th>폐기 사유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TitaNet-L (NeMo)</td>
+<td>nemo_toolkit 2.7.3 ↔ torch==2.1 충돌, 설치 시 diart 전체 깨짐</td>
+</tr>
+<tr>
+<td>WeSpeaker (CPU)</td>
+<td>runtime 368s/row (11.5x realtime) — 실시간 운영 불가. <strong>GPU 환경 별도 plan 검토 (best DER 0.176)</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_2">북극성 평가</h2>
+<table>
+<thead>
+<tr>
+<th>지표</th>
+<th>목표</th>
+<th>달성</th>
+<th>평가</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DER</td>
+<td>≤ 0.15</td>
+<td><strong>0.199</strong> (pyannote 실시간)</td>
+<td>❌ <strong>미달</strong></td>
+</tr>
+<tr>
+<td>초기 cluster latency</td>
+<td>≤ 20s</td>
+<td>2.52s</td>
+<td>✅ 통과</td>
+</tr>
+<tr>
+<td>라벨링 지연</td>
+<td>≤ 3s</td>
+<td>0.5s (p50)</td>
+<td>✅ 통과</td>
+</tr>
+<tr>
+<td>실시간 처리</td>
+<td>≤ 1x realtime</td>
+<td>0.06x</td>
+<td>✅ 통과</td>
+</tr>
+</tbody>
+</table>
+<p><strong>DER 미달 결론</strong>:<br />
+- Phase 1 (embedding × window × step) 한계 영역 도달<br />
+- Phase 2 (scheduler) 으로도 미해결<br />
+- 후속 가능 방향:<br />
+  - (a) <strong>현 수준으로 Phase 3 demo 진행</strong> — 정확도 ~80% 라이브 라벨링은 demo 로 의미 있음<br />
+  - (b) <strong>wespeaker GPU 측정</strong> — DER 0.176 → 0.15 근접 가능성. GPU instance 결정 의존<br />
+  - (c) <strong>ground truth RTTM 수동 정제</strong> — pyannote 자동 생성 → 명시 검증 → 재측정. record_3 의 높은 DER 부분적 sample 난이도 가능성<br />
+  - (d) <strong>embedding 모델 fine-tuning</strong> — 한국어 회의 도메인 특화. 시간 큰 작업</p>
+<p>권장: (a) Phase 3 demo 진행 + 병렬로 (b) wespeaker GPU 검토 또는 (c) RTTM 정제.</p>
+<hr />
+<h2 id="_3">발견된 패턴 (재확인)</h2>
+<h3 id="1-step05">1. step=0.5 압도적 우위</h3>
+<table>
+<thead>
+<tr>
+<th>step</th>
+<th>전 모델 평균 DER</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.1</td>
+<td>~0.87 (실용 불가)</td>
+</tr>
+<tr>
+<td>0.25</td>
+<td>~0.56 (부분)</td>
+</tr>
+<tr>
+<td><strong>0.5</strong></td>
+<td><strong>~0.20</strong> (실용 가능)</td>
+</tr>
+</tbody>
+</table>
+<p>→ Phase 3 / 후속 ablation 에서도 step=0.5 고정.</p>
+<h3 id="2-window20">2. window=2.0 최적</h3>
+<p>전 모델 공통. 1초는 정보 부족, 3~5초는 over-smoothing.</p>
+<h3 id="3-record_3-der-005012">3. record_3 DER 전반 높음 (~0.05~0.12 차이)</h3>
+<p>원인 후보 (검증 미완):<br />
+- record_3 (168s) 가 record_1 (277s) 보다 짧음 → cluster 형성 시간 부족<br />
+- record_3 의 화자 turn-taking 더 빠름 가능성<br />
+- pyannote 자동 RTTM 정확도 차이 (record_3 viewer 검토 진행 중)</p>
+<p>→ ground truth 정제 + 추가 한국어 sample 확보 시 재측정 권장.</p>
+<h3 id="4-adaptivescheduler-finalreclusterer">4. AdaptiveScheduler / FinalReclusterer 의 실증 효과 부족 (재검증)</h3>
+<ul>
+<li>legacy v0.1 admin smoke 시점: "finalize DER 19.73% ≈ online DER 19.40%"</li>
+<li>v0.2 Phase 2: scheduler 5종 ablation 결과 어떤 variant 도 ≥ 2pp 개선 못 함</li>
+<li>→ <strong>wrapper (AdaptiveScheduler / FinalReclusterer / OnlineSpeakerClusterer wrapper) 폐기 결정 (adr-01) 검증됨</strong></li>
+</ul>
+<hr />
+<h2 id="_4">다음 단계</h2>
+<h3 id="phase-3-demo-plan">Phase 3 — demo 구현 (별도 plan, 발주 예정)</h3>
+<table>
+<thead>
+<tr>
+<th>구성 요소</th>
+<th>기준</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>화자 분리</td>
+<td>diart + pyannote/embedding × w=2.0 s=0.5 baseline</td>
+</tr>
+<tr>
+<td>STT</td>
+<td>ElevenLabs Realtime (legacy v0.1 자산 재활용)</td>
+</tr>
+<tr>
+<td>매핑</td>
+<td>diart SpeakerSegment ↔ STT phrase time overlap (legacy v0.1 T-025 패턴)</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>4-panel grid (legacy v0.1 자산 재활용)</td>
+</tr>
+<tr>
+<td><strong>신규 측정</strong></td>
+<td><strong>실시간 라벨링 latency (per-chunk emit timestamp)</strong> — v0.2 ablation 에 없던 진짜 라이브 측정</td>
+</tr>
+</tbody>
+</table>
+<p>planning-02 또는 PLAN-V03 신설 (architect 발주).</p>
+<h3 id="task">후속 task 후보</h3>
+<table>
+<thead>
+<tr>
+<th>task</th>
+<th>우선순위</th>
+<th>담당</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 3 demo plan 신설 (<code>planning-02-demo.md</code>)</td>
+<td>★ 즉시</td>
+<td>architect</td>
+</tr>
+<tr>
+<td>Phase 3 demo 구현</td>
+<td>Phase 3 plan 박힌 후</td>
+<td>evaluator / realtime-api / demo-ui</td>
+</tr>
+<tr>
+<td>wespeaker GPU 측정 (별도)</td>
+<td>운영 GPU 결정 후</td>
+<td>evaluator</td>
+</tr>
+<tr>
+<td>record_3 RTTM 수동 정제</td>
+<td>사용자 검토 후</td>
+<td>admin</td>
+</tr>
+<tr>
+<td>eval_ablation.py 의 실시간 latency 측정 보강 (StreamingInference hook)</td>
+<td>Phase 3 와 같이</td>
+<td>evaluator</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_5">폐기 / 보존 정리</h3>
+<p><strong>v0.2 에서 채택 X — 폐기 명확</strong>:<br />
+- TitaNet-L (NeMo 충돌)<br />
+- scheduler 5 variant 중 baseline 외 4종 (개선 효과 없음)<br />
+- legacy v0.1 의 speaker_engine wrapper (OnlineSpeakerClusterer wrapper, AdaptiveScheduler, FinalReclusterer, identify_phrase)</p>
+<p><strong>보존</strong>:<br />
+- diart 0.9.2 + pyannote.audio 3.1.1 (의존성 stack)<br />
+- 3 embedding wrap (<code>eval/embeddings/</code>) — Phase 3 에서 pyannote 채택, 다른 2개는 후속 검증용<br />
+- 한국어 sample 2개 + RTTM ground truth (<code>eval/data/korean/</code>)<br />
+- legacy v0.1 자산: ElevenLabs STT 어댑터, ServerVAD, web UI, AudioWorklet, Docker</p>
+<hr />
+<h2 id="_6">산출물 정리</h2>
+<table>
+<thead>
+<tr>
+<th>분류</th>
+<th>파일</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INDEX</td>
+<td><code>eval/ablation/results/INDEX.html</code></td>
+<td>top-level entry point</td>
+</tr>
+<tr>
+<td>Phase 1 HTML</td>
+<td><code>phase1-full-20260522.html</code></td>
+<td>72 rows</td>
+</tr>
+<tr>
+<td>Phase 2 HTML</td>
+<td><code>phase2-20260522.html</code></td>
+<td>20 rows + scheduler 차트</td>
+</tr>
+<tr>
+<td>Phase 1 분석</td>
+<td><code>retrospective/phase1-analysis.md</code> + <code>.html</code></td>
+<td>1차 분석</td>
+</tr>
+<tr>
+<td><strong>v0.2 최종</strong> (본 문서)</td>
+<td><code>retrospective/v02-final.md</code></td>
+<td>Phase 1 + 2 종합</td>
+</tr>
+<tr>
+<td>Raw 데이터</td>
+<td><code>eval/ablation/results/all.csv</code> (93 rows), <code>*.json</code></td>
+<td>누적</td>
+</tr>
+<tr>
+<td>측정 코드</td>
+<td><code>scripts/eval_ablation.py</code>, <code>render_report.py</code>, <code>render_index.py</code>, <code>rttm_viewer.py</code>, <code>generate_rttm.py</code></td>
+<td>v0.2 산출</td>
+</tr>
+<tr>
+<td>Embedding wrap</td>
+<td><code>eval/embeddings/</code></td>
+<td>pyannote/ecapa-tdnn/wespeaker</td>
+</tr>
+<tr>
+<td>데이터셋</td>
+<td><code>eval/data/korean/</code></td>
+<td>record_1.wav/.rttm + record_3</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="v02">v0.2 완료 선언</h2>
+<ul>
+<li>✅ Phase 0: 환경 구축</li>
+<li>✅ Phase 1: embedding × window × step grid 측정 + 분석</li>
+<li>✅ Phase 2: scheduler ablation 측정 + baseline 채택 결정</li>
+<li>⏭ Phase 3: demo 구현 — 별도 plan 분리 (다음 단계)</li>
+<li>⏭ Phase 4: enrollment + 운영 — out of v0.2 scope</li>
+</ul>
+<p><strong>v0.2 ablation study 핵심 산출</strong>:<br />
+- 최적 조합 박제 (Phase 3 demo 의 base)<br />
+- wrapper 폐기 결정 (adr-01) 실증 검증<br />
+- 북극성 미달의 명확한 근거 + 후속 방향 박제<br />
+- 재현 가능한 ablation 환경 (코드 + 데이터 + report HTML)</p>
+<div class="nav" style="margin-top: 40px;"><a href="INDEX.html">← v0.2 INDEX 로 돌아가기</a></div>
+</body>
+</html>

@@ -1,0 +1,326 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "legacy-adaptive",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T08:06:03.421587+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "legacy-adaptive",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T08:06:03.421849+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "legacy-final",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T08:06:03.421963+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "legacy-final",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T08:06:03.422063+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "legacy-both",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T08:06:03.422249+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "legacy-both",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "HF_TOKEN env var required for pyannote/embedding",
+    "timestamp": "2026-05-22T08:06:03.422364+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "legacy-adaptive",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 469, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nhuggingface_hub.utils._headers.LocalTokenNotFoundError: Token is required (`token=True`), but no token found. You need to provide a token or be logged in to Hugging Face with `huggingface-cli login` or `huggingface_hub.login`. See https://huggingface.co/settings/tokens.\n",
+    "timestamp": "2026-05-22T08:06:04.630089+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "legacy-adaptive",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 469, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nhuggingface_hub.utils._headers.LocalTokenNotFoundError: Token is required (`token=True`), but no token found. You need to provide a token or be logged in to Hugging Face with `huggingface-cli login` or `huggingface_hub.login`. See https://huggingface.co/settings/tokens.\n",
+    "timestamp": "2026-05-22T08:06:05.633994+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "legacy-final",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 469, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nhuggingface_hub.utils._headers.LocalTokenNotFoundError: Token is required (`token=True`), but no token found. You need to provide a token or be logged in to Hugging Face with `huggingface-cli login` or `huggingface_hub.login`. See https://huggingface.co/settings/tokens.\n",
+    "timestamp": "2026-05-22T08:06:06.638237+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "legacy-final",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 469, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nhuggingface_hub.utils._headers.LocalTokenNotFoundError: Token is required (`token=True`), but no token found. You need to provide a token or be logged in to Hugging Face with `huggingface-cli login` or `huggingface_hub.login`. See https://huggingface.co/settings/tokens.\n",
+    "timestamp": "2026-05-22T08:06:07.648632+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "legacy-both",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 469, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nhuggingface_hub.utils._headers.LocalTokenNotFoundError: Token is required (`token=True`), but no token found. You need to provide a token or be logged in to Hugging Face with `huggingface-cli login` or `huggingface_hub.login`. See https://huggingface.co/settings/tokens.\n",
+    "timestamp": "2026-05-22T08:06:08.650019+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "legacy-both",
+    "metrics": {
+      "der": 0.0,
+      "initial_cluster_latency_s": 0.0,
+      "labeling_latency_p50_s": 0.0,
+      "labeling_latency_p95_s": 0.0,
+      "label_consistency": 0.0,
+      "cpu_peak_pct": 0.0,
+      "cpu_avg_pct": 0.0,
+      "ram_peak_mb": 0.0,
+      "ram_avg_mb": 0.0,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 0.0
+    },
+    "error": "Traceback (most recent call last):\n  File \"/Users/kknaks/git/library/seperate_void_streaming/scripts/eval_ablation.py\", line 469, in run_combination\n    pipeline = SpeakerDiarization(config)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/diarization.py\", line 96, in __init__\n    self.segmentation = SpeakerSegmentation(\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/blocks/segmentation.py\", line 13, in __init__\n    self.model.eval()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 136, in eval\n    self.load()\n  File \"/Users/kknaks/git/library/seperate_void_streaming/.venv/lib/python3.11/site-packages/diart/models.py\", line 124, in load\n    self.model = self.get_model()\n                 ^^^^^^^^^^^^^^^^\nhuggingface_hub.utils._headers.LocalTokenNotFoundError: Token is required (`token=True`), but no token found. You need to provide a token or be logged in to Hugging Face with `huggingface-cli login` or `huggingface_hub.login`. See https://huggingface.co/settings/tokens.\n",
+    "timestamp": "2026-05-22T08:06:09.654815+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  }
+]

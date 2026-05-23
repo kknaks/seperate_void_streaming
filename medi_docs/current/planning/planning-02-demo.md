@@ -1,42 +1,65 @@
 ---
 id: planning-02
 type: planning
-title: PLAN-V03 — Phase 3 실시간 화자 분리 + STT Demo
+title: PLAN-V03 — Phase 3 실시간 환경 Ablation (라이브 측정)
 status: draft
 created: 2026-05-23
 updated: 2026-05-23
 sources:
   - "[[retrospective-v02-final]]"
   - "[[adr-01-ablation-centric-design]]"
-tags: [planning, v0.3, demo, diarization, stt, realtime, elevenlabs]
+tags: [planning, v0.3, ablation, realtime, diarization, stt, elevenlabs]
 ---
 
-# PLAN-V03 — Phase 3 실시간 화자 분리 + STT Demo
+# PLAN-V03 — Phase 3 실시간 환경 Ablation 측정
 
 ## 한 줄
 
-v0.2 ablation 최적 조합 기반 실시간 화자 분리 + ElevenLabs STT 자막 demo — 라이브 라벨링 latency 진짜 측정 포함.
+v0.2 offline ablation 의 후속 — **실시간 환경 (라이브 streaming + STT 매핑)** 에서 2 embedding 후보 (pyannote / ecapa-tdnn) 재측정 + 최종 운영 모델 결정 + 보고서.
+
+## 정체성 (v0.2 와 동일 정체성)
+
+Phase 3 = **demo 자체가 목적 X**. demo_v03 는 측정 도구. 본질 = **최적 설정값 라이브 환경에서 재검증 + 보고서**.
+
+v0.2 와 차이:
+- v0.2 offline = `StreamingInference` 가 audio 끝까지 처리 후 final Annotation 만 반환 → 라이브 latency 측정 X
+- **v0.3 라이브 = per-chunk emit timestamp + online DER + STT 매핑 정확도 측정**
 
 ## 배경
 
 v0.2 ablation study 종결 (`retrospective/v02-final.md`):
 
-- **최적 조합**: `pyannote/embedding × w=2.0 × s=0.5 × baseline` (DER 0.199, 16s/277s realtime)
-- 8 scheduler variant 측정 → 어떤 variant도 baseline 못 이김 → adr-01 (wrapper 폐기) 실증 검증
-- 북극성 (DER ≤ 0.15) 미달 — Phase 3 demo 진행 (정확도 ~80% 라이브 라벨링도 demo 로 의미 있음)
+- **2 라이브 후보**: `pyannote/embedding` (1순위, offline DER 0.199, 16s realtime) + `ecapa-tdnn` (2순위, DER 0.205, 46s, sample 분산 최저)
+- 8 scheduler variant 측정 → baseline 채택
+- 북극성 (DER ≤ 0.15) 미달 — 라이브 측정 보강 + 운영 결정 필요
 
-v0.2 ablation 은 **offline 재생 파일 기반 측정** 이었으므로, Phase 3 에서 처음으로 **진짜 라이브 측정** 수행.
+v0.2 ablation 은 **offline 재생 파일 기반 측정** — Phase 3 에서 **진짜 라이브 환경 ablation** 수행.
 
-## 북극성
+## 측정 grid
+
+```
+embedding  : pyannote/embedding | ecapa-tdnn   (v0.2 1순위 + 2순위)
+window_s   : 2.0                              (v0.2 결정 고정)
+step_s     : 0.5                              (v0.2 결정 고정)
+scheduler  : baseline                          (v0.2 채택 고정)
+sample     : record_1.wav | record_3.wav      (한국어, ground truth RTTM 있음)
+mode       : live-streaming                    (per-chunk emit)
+```
+
+→ **2 embedding × 2 sample = 4 라이브 측정 rows** (단순 grid, v0.2 결정 위에서 라이브 환경 검증)
+
+## metric (v0.2 + 라이브 신규)
 
 | 지표 | 목표 | 측정 방법 |
 |------|------|-----------|
-| 라이브 라벨링 latency | ≤ **2초** | PCM 입력 → label emit (per-chunk emit timestamp) |
-| DER (offline) | ≤ 0.20 | v0.2 baseline 수준 유지 |
-| 자막 + 화자 라벨 동기화 | 시각 확인 | 시간 overlap mapping 정확도 |
-| e2e smoke | WS open + 4-panel 표시 | 통합 검증 |
+| **라이브 emit latency p50/p95** | ≤ 2초 | PCM 입력 시점 → labeled_phrase emit 시점 |
+| **online DER** | ≤ 0.20 | 시간별 누적 prediction vs ground truth |
+| **final DER (offline 동치)** | v0.2 baseline 수준 유지 | streaming 끝난 후 최종 prediction |
+| **매핑 정확도** | 시각 확인 | 시간 overlap (segment ↔ STT phrase) 결과 검토 |
+| **CPU / RAM** | v0.2 수준 유지 | psutil 1초 폴링 |
+| **STT phrase 개수** | — | ElevenLabs phrase commit 빈도 (라이브 매핑 단위) |
 
-> v0.2 ablation 에서 측정한 초기 cluster latency 2.52s / 라벨링 p50 0.5s 는 offline 재생 기준. Phase 3 에서 라이브 PCM 스트리밍 기반 재측정.
+> v0.2 의 라벨링 p50 0.5s 는 offline placeholder. **본 Phase 3 가 진짜 라이브 latency 측정**.
 
 ---
 

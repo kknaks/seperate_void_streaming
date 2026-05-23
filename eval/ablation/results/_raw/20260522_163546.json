@@ -1,0 +1,326 @@
+[
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "decay-A",
+    "metrics": {
+      "der": 0.3702145946877977,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.36883116883116884,
+      "cpu_peak_pct": 195.1,
+      "cpu_avg_pct": 168.23333333333332,
+      "ram_peak_mb": 603.357184,
+      "ram_avg_mb": 321.30935466666665,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 12.039611083921045
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:36:00.526423+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "decay-B",
+    "metrics": {
+      "der": 0.26626398325239115,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.4961180124223602,
+      "cpu_peak_pct": 196.2,
+      "cpu_avg_pct": 169.20909090909092,
+      "ram_peak_mb": 288.93184,
+      "ram_avg_mb": 248.82976581818184,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 11.033397833118215
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:36:11.561465+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "hdbscan-on",
+    "metrics": {
+      "der": 0.24825611940403866,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.4916666666666667,
+      "cpu_peak_pct": 195.0,
+      "cpu_avg_pct": 166.77692307692308,
+      "ram_peak_mb": 294.453248,
+      "ram_avg_mb": 253.66717046153846,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 13.039762375177816
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:36:24.602940+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "pyannote/embedding",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "hdbscan-off",
+    "metrics": {
+      "der": 0.2606297448697966,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.47987117552334946,
+      "cpu_peak_pct": 193.0,
+      "cpu_avg_pct": 151.34285714285713,
+      "ram_peak_mb": 280.690688,
+      "ram_avg_mb": 227.26714514285715,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 14.043226375011727
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:36:38.648709+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "decay-A",
+    "metrics": {
+      "der": 0.22507638000267405,
+      "initial_cluster_latency_s": 2.5086206896551726,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5558712121212122,
+      "cpu_peak_pct": 203.9,
+      "cpu_avg_pct": 186.8892857142857,
+      "ram_peak_mb": 497.713152,
+      "ram_avg_mb": 395.50800457142856,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 56.19983183313161
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:37:35.025406+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "decay-A",
+    "metrics": {
+      "der": 0.29611833339128885,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.37592968221771467,
+      "cpu_peak_pct": 203.1,
+      "cpu_avg_pct": 169.86923076923077,
+      "ram_peak_mb": 412.13952,
+      "ram_avg_mb": 371.1085226666667,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 39.11845145816915
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:38:14.147620+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "decay-B",
+    "metrics": {
+      "der": 0.18739873072022914,
+      "initial_cluster_latency_s": 2.5603448275862073,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5440909090909092,
+      "cpu_peak_pct": 205.4,
+      "cpu_avg_pct": 187.9561403508772,
+      "ram_peak_mb": 505.93792,
+      "ram_avg_mb": 404.358269754386,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 57.181794041069224
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:39:11.333383+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "decay-B",
+    "metrics": {
+      "der": 0.24482573741990535,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5077777777777778,
+      "cpu_peak_pct": 201.3,
+      "cpu_avg_pct": 181.8285714285714,
+      "ram_peak_mb": 462.880768,
+      "ram_avg_mb": 407.2762806857143,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 35.10405433294363
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:39:46.442551+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "hdbscan-on",
+    "metrics": {
+      "der": 0.3037923651132233,
+      "initial_cluster_latency_s": 2.5603448275862073,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.8086312118570183,
+      "cpu_peak_pct": 234.0,
+      "cpu_avg_pct": 186.9783333333333,
+      "ram_peak_mb": 855.441408,
+      "ram_avg_mb": 402.85989546666667,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 60.1942517911084
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:40:46.641470+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "hdbscan-on",
+    "metrics": {
+      "der": 0.2737842662255778,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.42789968652037613,
+      "cpu_peak_pct": 491.5,
+      "cpu_avg_pct": 189.95999999999998,
+      "ram_peak_mb": 792.936448,
+      "ram_avg_mb": 403.18484479999995,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 40.10433729086071
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:41:26.749138+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_1.wav",
+    "scheduler": "hdbscan-off",
+    "metrics": {
+      "der": 0.2036681947640831,
+      "initial_cluster_latency_s": 2.5603448275862073,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5403525046382189,
+      "cpu_peak_pct": 564.7,
+      "cpu_avg_pct": 188.18983050847459,
+      "ram_peak_mb": 624.082944,
+      "ram_avg_mb": 387.2960997966101,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 59.20112191699445
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:42:25.955066+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  },
+  {
+    "embedding": "ecapa-tdnn",
+    "window_s": 2.0,
+    "step_s": 0.5,
+    "sample": "record_3.wav",
+    "scheduler": "hdbscan-off",
+    "metrics": {
+      "der": 0.20719379825604203,
+      "initial_cluster_latency_s": 2.008695652173913,
+      "labeling_latency_p50_s": 0.5,
+      "labeling_latency_p95_s": 2.0,
+      "label_consistency": 0.5031512605042017,
+      "cpu_peak_pct": 202.0,
+      "cpu_avg_pct": 183.40571428571425,
+      "ram_peak_mb": 454.361088,
+      "ram_avg_mb": 396.6983021714286,
+      "cold_load_s": 0.0,
+      "total_runtime_s": 35.121109625091776
+    },
+    "error": null,
+    "timestamp": "2026-05-22T07:43:01.084249+00:00",
+    "env": {
+      "device": "cpu",
+      "python": "3.11.15",
+      "diart": "0.9.x"
+    }
+  }
+]

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>void_streaming v0.4 — 운영 가이드</title>
+<style>
+body { font-family: -apple-system, sans-serif; max-width: 1000px; margin: 30px auto; padding: 20px; line-height: 1.7; color: #222; }
+h1 { border-bottom: 3px solid #4a90e2; padding-bottom: 10px; }
+h2 { color: #4a90e2; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+h3 { color: #333; margin-top: 25px; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+table th, table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+table th { background: #4a90e2; color: white; }
+table tr:nth-child(even) { background: #f9f9f9; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+pre { background: #f4f4f4; padding: 12px; border-radius: 4px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 4px solid #4a90e2; padding-left: 15px; color: #555; margin: 15px 0; }
+.nav { background: #f7f9fc; padding: 10px 20px; border-radius: 4px; margin-bottom: 20px; }
+.nav a { color: #4a90e2; text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="nav"><a href="INDEX.html">← v0.2 INDEX 로 돌아가기</a></div>
+<h1 id="void_streaming-v04">void_streaming v0.4 — 운영 가이드</h1>
+<blockquote>
+<p><strong>한 줄</strong>: 한국어 회의 화자 분리 + 실시간 STT 자막 + 라이브 화자 라벨링 demo 운영 가이드. Azure CPU instance 가정.</p>
+</blockquote>
+<hr />
+<h2 id="tldr">TL;DR</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>권장</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>embedding</strong></td>
+<td><code>pyannote/embedding</code> (512-dim)</td>
+</tr>
+<tr>
+<td><strong>window</strong></td>
+<td>2.0초</td>
+</tr>
+<tr>
+<td><strong>step</strong></td>
+<td>0.5초</td>
+</tr>
+<tr>
+<td><strong>scheduler</strong></td>
+<td>baseline (diart <code>OnlineSpeakerClustering</code> 기본)</td>
+</tr>
+<tr>
+<td><strong>device</strong></td>
+<td>CPU 강제 (GPU 불필요)</td>
+</tr>
+<tr>
+<td><strong>STT</strong></td>
+<td>ElevenLabs Realtime (<code>commit_strategy=manual</code> + server VAD silence 250ms)</td>
+</tr>
+<tr>
+<td><strong>매핑</strong></td>
+<td>diart segment ↔ STT phrase 시간 overlap → dominant speaker</td>
+</tr>
+<tr>
+<td><strong>Azure VM</strong></td>
+<td><strong>B2s</strong> (2 vCPU, 4GB RAM) — 권장 / B2ms (2 vCPU, 8GB) 여유 시</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SLA</strong>:<br />
+- STT 자막 즉시 (~0.5s)<br />
+- 화자 라벨링 p50 <strong>1.5초</strong> / p95 <strong>2.4초</strong><br />
+- 초기 cluster 형성 50초 (이후 stable)<br />
+- 화자 분리 정확도 ~80% (DER 0.20, 한국어 회의)</p>
+<hr />
+<h2 id="1">1. 권장 설정값 (확정)</h2>
+<h3 id="11-diart">1.1 화자 분리 (diart)</h3>
+<pre><code class="language-python">from diart import OnlineSpeakerDiarization, PipelineConfig
+from pyannote.audio import Model
+
+embedding = Model.from_pretrained(&quot;pyannote/embedding&quot;, use_auth_token=HF_TOKEN)
+
+config = PipelineConfig(
+    duration=2.0,           # window
+    step=0.5,               # step
+    tau_active=0.6,         # baseline scheduler (변경 금지)
+    rho_update=0.3,         # baseline
+    delta_new=1.0,          # baseline
+    device=&quot;cpu&quot;,           # CPU 강제 (GPU 불필요)
+)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>파라미터</th>
+<th>값</th>
+<th>변경 시 영향</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>window_s</code></td>
+<td><strong>2.0</strong></td>
+<td>1.0/3.0/5.0 시도 → 2.0 이 전 모델 최적 (Phase 1 ablation)</td>
+</tr>
+<tr>
+<td><code>step_s</code></td>
+<td><strong>0.5</strong></td>
+<td>0.1/0.25 시도 → 둘 다 DER 0.85+ (실용 불가). 0.5 만 사용 가능</td>
+</tr>
+<tr>
+<td>scheduler</td>
+<td><strong>baseline</strong></td>
+<td>decay-A/B + HDBSCAN on/off + legacy adaptive/final/both 측정 → 어떤 variant 도 ≥2pp 개선 못함</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-stt-elevenlabs-realtime">1.2 STT (ElevenLabs Realtime)</h3>
+<pre><code class="language-python">from server.stt import ElevenLabsSTT
+
+stt = ElevenLabsSTT(
+    language=&quot;ko&quot;,
+    commit_strategy=&quot;manual&quot;,      # vad 모드 한국어 회의 부적합 (legacy 검증)
+    use_server_vad=True,           # webrtcvad
+    vad_silence_ms=250,            # 한국어 발화 silence 평균 &lt; 1s, 250ms 권장
+    vad_aggressiveness=3,          # 0~3 중 적극적 silence 검출
+)
+</code></pre>
+<h3 id="13-overlap">1.3 시간 overlap 매핑</h3>
+<pre><code class="language-python">def resolve_label(phrase_start, phrase_end, segments):
+    &quot;&quot;&quot;dominant overlap segment 의 speaker 반환.&quot;&quot;&quot;
+    overlaps = {}
+    for seg in segments:
+        ov = max(0.0, min(phrase_end, seg.t_end) - max(phrase_start, seg.t_start))
+        if ov &gt; 0:
+            overlaps[seg.speaker] = overlaps.get(seg.speaker, 0.0) + ov
+    if not overlaps:
+        return &quot;unknown&quot;  # fallback
+    return max(overlaps.items(), key=lambda x: x[1])[0]
+</code></pre>
+<p>→ STT phrase 가 emit 될 때 <code>audio_ws</code> 의 <code>segment_log</code> 에서 lookup.</p>
+<hr />
+<h2 id="2-azure-vm">2. Azure VM 권장</h2>
+<h3 id="21">2.1 측정 기반 추정</h3>
+<table>
+<thead>
+<tr>
+<th>자원</th>
+<th>peak 실측</th>
+<th>avg 실측</th>
+<th>VM 권장</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU</td>
+<td>~200% (2 core 사용)</td>
+<td>~162%</td>
+<td>2 vCPU</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>778MB (pyannote)</td>
+<td>292MB</td>
+<td>2~4GB</td>
+</tr>
+<tr>
+<td>GPU</td>
+<td>사용 X</td>
+<td>—</td>
+<td>불필요</td>
+</tr>
+<tr>
+<td>처리 속도</td>
+<td>16초 / 277초 audio</td>
+<td>0.06× realtime</td>
+<td><strong>38× headroom</strong></td>
+</tr>
+<tr>
+<td>disk</td>
+<td>~3GB (모델 cache)</td>
+<td>—</td>
+<td>30GB 표준</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-sku">2.2 추천 SKU</h3>
+<table>
+<thead>
+<tr>
+<th>시나리오</th>
+<th>VM</th>
+<th>비용 (KR Central)</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>권장</strong></td>
+<td><strong>Standard B2s</strong> (2 vCPU, 4GB)</td>
+<td>~$30/월</td>
+<td>동시 1~2 세션</td>
+</tr>
+<tr>
+<td>여유</td>
+<td>Standard B2ms (2 vCPU, 8GB)</td>
+<td>~$60/월</td>
+<td>다중 세션 시 RAM 여유</td>
+</tr>
+<tr>
+<td>다중 동시</td>
+<td>Standard B4ms (4 vCPU, 16GB)</td>
+<td>~$120/월</td>
+<td>4+ 동시 세션</td>
+</tr>
+<tr>
+<td>비추천</td>
+<td>D-series (premium)</td>
+<td>—</td>
+<td>overspec, GPU 불필요</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>CPU instance burst (B-series) 충분 — peak burst 후 idle 시간 길어 baseline credit 확보.</p>
+</blockquote>
+<h3 id="23-install">2.3 의존성 install</h3>
+<pre><code class="language-bash"># Python 3.11 + venv
+pip install diart==0.9.2 pyannote.audio==3.1.1 torch==2.1.* torchaudio==2.1.*
+pip install 'huggingface_hub&lt;0.20'  # pyannote 3.1.1 호환
+pip install fastapi 'uvicorn[standard]' websockets webrtcvad
+
+# 모델 cache (~/.cache/huggingface)
+export HF_TOKEN=hf_xxxxx           # pyannote.audio 모델 download
+export ELEVENLABS_API_KEY=sk_xxxxx
+</code></pre>
+<h3 id="24-systemd-unit">2.4 systemd unit (예시)</h3>
+<pre><code class="language-ini">[Unit]
+Description=void_streaming demo_v03
+After=network.target
+
+[Service]
+Type=exec
+WorkingDirectory=/opt/void_streaming
+EnvironmentFile=/opt/void_streaming/.env
+ExecStart=/opt/void_streaming/.venv/bin/uvicorn examples.demo_v03:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<hr />
+<h2 id="3-sla">3. 예상 SLA</h2>
+<h3 id="31">3.1 응답성</h3>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>latency</th>
+<th>측정 근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STT 자막 (partial)</td>
+<td><strong>~0.5s</strong></td>
+<td>ElevenLabs Realtime, legacy v0.1 검증</td>
+</tr>
+<tr>
+<td>화자 라벨링 (p50)</td>
+<td><strong>1.5s</strong></td>
+<td>v0.4 실측 (pyannote, record_1/3)</td>
+</tr>
+<tr>
+<td>화자 라벨링 (p95)</td>
+<td><strong>2.4s</strong></td>
+<td>v0.4 실측 — 일부 tail 케이스</td>
+</tr>
+<tr>
+<td>초기 cluster 형성</td>
+<td><strong>50초</strong></td>
+<td>diart 본질, 50s 후 stable</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 정확도</h3>
+<table>
+<thead>
+<tr>
+<th>metric</th>
+<th>값</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DER (offline)</td>
+<td><strong>0.199</strong></td>
+<td>v0.2 ablation, pyannote w=2.0 s=0.5 baseline</td>
+</tr>
+<tr>
+<td>DER (라이브)</td>
+<td><strong>0.224</strong></td>
+<td>v0.3 ablation, 실시간 환경 추가</td>
+</tr>
+<tr>
+<td>라이브 매핑 정확도</td>
+<td><strong>stable 50s 후 ~95%</strong></td>
+<td>v0.3 시연 검증, 81 phrase A=고객/B=상담사 일관</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33">3.3 알려진 한계</h3>
+<table>
+<thead>
+<tr>
+<th>한계</th>
+<th>영향</th>
+<th>완화</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>초기 50초 cluster 형성 불안정</td>
+<td>첫 1~2분 라벨링 잘못 가능</td>
+<td>retroactive 라벨 갱신 옵션 (후속 plan) 또는 사용자 UI 안내</td>
+</tr>
+<tr>
+<td>record_3 DER 높음 (0.288)</td>
+<td>짧은 audio + 화자 turn-taking 빠름 → 정확도 ↓</td>
+<td>운영 시 모니터링, sample 길이 ≥ 3분 권장</td>
+</tr>
+<tr>
+<td>p95 latency 2.4s</td>
+<td>일부 phrase 2초 초과 라벨링</td>
+<td>UI 에 "라벨링 중..." 인디케이터</td>
+</tr>
+<tr>
+<td>client websocket 40s 끊김 (auto_play 측정)</td>
+<td>demo 외부 영향 0</td>
+<td>실 브라우저 client 는 안정 (시연 검증)</td>
+</tr>
+<tr>
+<td>한국어 외 언어</td>
+<td>미검증</td>
+<td>language="ko" 외 별도 측정</td>
+</tr>
+<tr>
+<td>등록 직원 매핑 (registered:이름)</td>
+<td>미구현</td>
+<td>Phase 4 후속 plan (out of v0.4 scope)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4">4. 운영 체크리스트</h2>
+<h3 id="41">4.1 배포 전</h3>
+<ul>
+<li>[ ] Azure VM B2s+ 프로비저닝</li>
+<li>[ ] Python 3.11 + venv 구성</li>
+<li>[ ] HF_TOKEN + ELEVENLABS_API_KEY 환경 변수 설정</li>
+<li>[ ] diart + pyannote.audio 모델 cache pre-load (<code>scripts/render_index.py</code> 같은 dry-run)</li>
+<li>[ ] firewall: 8000 (또는 443 + reverse proxy)</li>
+<li>[ ] systemd unit 또는 docker compose 등록</li>
+</ul>
+<h3 id="42">4.2 운영 모니터링</h3>
+<table>
+<thead>
+<tr>
+<th>metric</th>
+<th>도구</th>
+<th>임계</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU 사용률</td>
+<td>Azure Monitor / <code>psutil</code></td>
+<td>&gt; 80% 지속 시 인스턴스 size up</td>
+</tr>
+<tr>
+<td>RAM</td>
+<td>Azure Monitor</td>
+<td>&gt; 80% 시 size up</td>
+</tr>
+<tr>
+<td>WS 연결 수</td>
+<td>server log</td>
+<td>동시 세션 수</td>
+</tr>
+<tr>
+<td>라이브 latency</td>
+<td>demo_v03 <code>latency_log</code> (DEMO_V03_LATENCY_LOG=1)</td>
+<td>p95 &gt; 3s 시 조사</td>
+</tr>
+<tr>
+<td>ElevenLabs API 응답</td>
+<td>server log</td>
+<td>5xx / 401 alert</td>
+</tr>
+<tr>
+<td>diart 모델 load 시간</td>
+<td>startup log</td>
+<td>&gt; 30s 시 cache 확인</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43">4.3 장애 대응</h3>
+<table>
+<thead>
+<tr>
+<th>증상</th>
+<th>조치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>첫 WS 연결 30s+ 지연</td>
+<td>diart 모델 lazy-load — startup 시 pre-load 변경</td>
+</tr>
+<tr>
+<td>라벨링 안 됨</td>
+<td>server log [PHRASE] 확인, ElevenLabs API 401 가능</td>
+</tr>
+<tr>
+<td>모든 phrase 한 라벨</td>
+<td>diart 초기 50초 cluster 형성 단계 정상 — 1~2분 대기</td>
+</tr>
+<tr>
+<td>자막 안 흐름</td>
+<td>ElevenLabs WS 연결 실패 — API key 확인</td>
+</tr>
+<tr>
+<td>CPU 100% 지속</td>
+<td>동시 세션 수 + VM size 검토</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 산출물 위치</h2>
+<pre><code>/opt/void_streaming/
+├── examples/demo_v03.py           # WS 서버 + diart + STT + 매핑
+├── eval/embeddings/pyannote_emb.py # embedding wrap (Phase 1 ablation 자산)
+├── server/stt/elevenlabs.py        # ElevenLabs Realtime 어댑터
+├── server/stt/vad.py               # webrtcvad ServerVAD
+├── server/audio/ringbuffer.py      # PcmRingBuffer
+├── web/index.html                  # 4-panel UI
+├── web/worklet-processor.js        # AudioWorklet PCM capture
+└── scripts/
+    ├── auto_play_audio.py          # 자동 재생 (측정용)
+    ├── eval_ablation.py            # offline ablation 측정
+    ├── realtime_ablation.py        # 라이브 ablation 측정 (v0.3)
+    ├── render_report.py            # ablation HTML report
+    └── render_index.py             # INDEX HTML 생성
+</code></pre>
+<hr />
+<h2 id="6-out-of-v04">6. 후속 개선 (out of v0.4)</h2>
+<ul>
+<li><strong>enrollment</strong>: 등록 직원 voice sample → <code>registered:이름</code> 매핑 (운영 핵심 가치)</li>
+<li><strong>wespeaker GPU 측정</strong>: DER 0.176 (CPU 비실용, GPU instance 평가)</li>
+<li><strong>embedding fine-tuning</strong>: 한국어 회의 도메인 특화</li>
+<li><strong>record_3 RTTM 수동 정제</strong>: ground truth 정확도 향상</li>
+<li><strong>retroactive 라벨 갱신</strong>: 초기 50초 phrase 의 사후 정정</li>
+</ul>
+<hr />
+<h2 id="7">7. 참조</h2>
+<ul>
+<li><a href="INDEX.html">INDEX (전체 산출물)</a></li>
+<li><a href="v02-final.html">v0.2 ablation 최종</a></li>
+<li><a href="v03-realtime-20260523.html">v0.3 라이브 매핑</a></li>
+<li><a href="v04-live-latency.html">v0.4 라이브 latency</a></li>
+<li><a href="phase1-full-20260522.html">Phase 1 grid (72 rows)</a></li>
+<li><a href="phase2-final-20260522.html">Phase 2 scheduler (32 rows)</a></li>
+</ul>
+<div class="nav" style="margin-top: 40px;"><a href="INDEX.html">← v0.2 INDEX 로 돌아가기</a></div>
+</body>
+</html>

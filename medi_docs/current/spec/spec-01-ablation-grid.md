@@ -24,7 +24,7 @@ Phase 1~2 ablation 실험 전체 조합 정의 + 측정 결과를 담는 JSON ro
 ### Phase 1: embedding × window × step
 
 ```
-embedding  : pyannote/embedding | ecapa-tdnn | wespeaker-resnet152 | titanet-l
+embedding  : pyannote/embedding | ecapa-tdnn | wespeaker-resnet221 | titanet-l
 window_s   : 1.0 | 2.0 | 3.0 | 5.0
 step_s     : 0.1 | 0.25 | 0.5
 ```
@@ -53,7 +53,7 @@ scheduler  : baseline | decay-A | decay-B | hdbscan-on | hdbscan-off
 
 ```json
 {
-  "embedding": "pyannote/embedding | ecapa-tdnn | wespeaker-resnet152 | titanet-l",
+  "embedding": "pyannote/embedding | ecapa-tdnn | wespeaker-resnet221 | titanet-l",
   "window_s": 1.0,
   "step_s": 0.1,
   "sample": "record_1.wav",
@@ -68,21 +68,19 @@ scheduler  : baseline | decay-A | decay-B | hdbscan-on | hdbscan-off
     "cpu_avg_pct": 0.0,
     "ram_peak_mb": 0.0,
     "ram_avg_mb": 0.0,
-    "gpu_peak_pct": 0.0,
-    "gpu_avg_pct": 0.0,
-    "gpu_mem_peak_mb": 0.0,
     "cold_load_s": 0.0,
     "total_runtime_s": 0.0
   },
   "error": null,
   "timestamp": "2026-05-22T00:00:00Z",
   "env": {
-    "gpu": "M3 Max | RTX 4090 | None",
-    "cuda": "12.x | None",
+    "device": "cpu",
     "python": "3.11.x",
     "diart": "0.x.x"
   }
 }
+
+> **GPU 필드 제외** (2026-05-22): Azure CPU instance 운영 가정. spec-06 §7 참조.
 ```
 
 **필드 설명**
@@ -143,7 +141,7 @@ error, timestamp, gpu, cuda, python, diart
 
 ```mermaid
 flowchart LR
-    E1[pyannote/embedding] & E2[ecapa-tdnn] & E3[wespeaker-resnet152] & E4[titanet-l]
+    E1[pyannote/embedding] & E2[ecapa-tdnn] & E3[wespeaker-resnet221] & E4[titanet-l]
     --> W[window: 1s/2s/3s/5s]
     --> S[step: 0.1s/0.25s/0.5s]
     --> R["48 combinations (Phase 1)"]

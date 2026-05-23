@@ -148,30 +148,11 @@ ram_mb = proc.memory_info().rss / 1e6
 
 ---
 
-### 7. GPU 사용률 + GPU 메모리
+### 7. ~~GPU 사용률 + GPU 메모리~~ (제외)
 
-| 항목 | 값 |
-|------|---|
-| 도구 | `pynvml` (또는 `subprocess nvidia-smi`) |
-| 폴링 간격 | 1초 |
-| 집계 | peak + avg |
-| 단위 | 사용률 %, 메모리 MB |
-| GPU 없을 때 | 모두 0 기록 |
+**제외 결정 (2026-05-22)** — Azure CPU instance 운영 가정. 모든 모델 `device="cpu"` 강제로 일관 측정. GPU instance 채택 시 deployment 단계에서 별도 측정.
 
-```python
-import pynvml
-
-pynvml.nvmlInit()
-handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-
-util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
-
-gpu_pct = util.gpu          # 사용률 (%)
-gpu_mem_mb = mem.used / 1e6  # 사용 메모리 (MB)
-```
-
-MPS (Apple Silicon) 환경: pynvml 사용 불가 → 0 기록.
+ablation 결과 JSON schema 에서 `gpu_*` 필드 제외.
 
 ---
 
@@ -213,7 +194,7 @@ cold_load_s = time.perf_counter() - t0
 | 라벨 일관성 | 자체 | 높을수록 | 0~1 |
 | CPU peak/avg | psutil | — | % |
 | RAM peak/avg | psutil | — | MB |
-| GPU peak/avg | pynvml | — | % |
-| GPU mem peak | pynvml | — | MB |
 | cold-load | perf_counter | — | s |
 | total runtime | perf_counter | — | s |
+
+> **GPU 측정 제외** (2026-05-22): Azure CPU instance 운영 가정. 자세한 사유는 본 spec §7.

@@ -19,7 +19,9 @@ import asyncio
 import json
 import logging
 import os
+import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -298,9 +300,20 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
 
     pcm_for_diart: asyncio.Queue[bytes | None] = asyncio.Queue()
 
+    # Live latency hook (PLAN-V04-T-001):
+    #   각 phrase 의 audio 끝나는 시점 (t_end) 의 PCM 청크가 server 도착한 wall-clock vs
+    #   labeled_phrase emit wall-clock 차이 = 진짜 라이브 라벨링 latency.
+    session_start_wallclock = time.perf_counter()
+    audio_recv_log: list[tuple[float, float]] = []  # (audio_t_offset_s, recv_wallclock_offset_s)
+    latency_log: list[dict] = []
+
     async def pcm_loop() -> None:
         async for chunk in _pcm_stream(ws):
+            recv_wc = time.perf_counter() - session_start_wallclock
             buf.append(chunk)
+            # PCM 청크 끝 시점의 audio_t 추정 = current ringbuffer duration
+            audio_t = buf.duration_s()
+            audio_recv_log.append((audio_t, recv_wc))
             await stt.feed(chunk)
             await pcm_for_diart.put(chunk)
         await stt.close()
@@ -345,7 +358,28 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
                 "text": text,
             }
             phrase_log.append(entry)
-            logger.info("[PHRASE] t=%.2f~%.2f label=%s text=%r", t_start, t_end, label, text[:60])
+            # Live latency 측정 — phrase t_end 의 PCM 청크 도착 wallclock vs 현재 emit wallclock
+            emit_wc = time.perf_counter() - session_start_wallclock
+            audio_recv_wc = None
+            for audio_t, recv_wc in audio_recv_log:
+                if audio_t >= t_end:
+                    audio_recv_wc = recv_wc
+                    break
+            latency_s = (emit_wc - audio_recv_wc) if audio_recv_wc is not None else None
+            latency_log.append({
+                "phrase_t_start": t_start,
+                "phrase_t_end": t_end,
+                "audio_recv_wallclock": audio_recv_wc,
+                "emit_wallclock": emit_wc,
+                "latency_s": latency_s,
+                "label": label,
+            })
+            logger.info(
+                "[PHRASE] t=%.2f~%.2f label=%s latency=%s text=%r",
+                t_start, t_end, label,
+                f"{latency_s:.3f}s" if latency_s is not None else "N/A",
+                text[:60],
+            )
             if ws.client_state == WebSocketState.CONNECTED:
                 await ws.send_json({"type": "labeled_phrase", **entry})
             phrase_words.clear()
@@ -393,6 +427,37 @@ async def audio_ws(ws: WebSocket, visit_id: str) -> None:
             await ws.close()
         except Exception:
             pass
+        # Live latency JSON 저장 (DEMO_V03_LATENCY_LOG=1 env var 시)
+        if os.environ.get("DEMO_V03_LATENCY_LOG") == "1" and latency_log:
+            out_dir = Path("eval/ablation/results/v04")
+            out_dir.mkdir(parents=True, exist_ok=True)
+            valid = [r for r in latency_log if r.get("latency_s") is not None]
+            ls = [r["latency_s"] for r in valid]
+            ls_sorted = sorted(ls)
+            def _pct(p):
+                if not ls_sorted:
+                    return None
+                idx = max(0, min(len(ls_sorted) - 1, int(round((p / 100.0) * (len(ls_sorted) - 1)))))
+                return ls_sorted[idx]
+            payload = {
+                "visit_id": visit_id,
+                "embedding": os.environ.get("DEMO_V03_EMBEDDING", "pyannote/embedding"),
+                "sample": os.environ.get("DEMO_V03_SAMPLE", "unknown"),
+                "duration_s": buf.duration_s(),
+                "phrase_count": len(phrase_log),
+                "metrics": {
+                    "live_emit_latency_p50_s": _pct(50),
+                    "live_emit_latency_p95_s": _pct(95),
+                    "live_emit_latency_max_s": max(ls) if ls else None,
+                    "phrases_measured": len(valid),
+                },
+                "latency_per_phrase": latency_log,
+            }
+            out_path = out_dir / f"live-{visit_id}.json"
+            out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            logger.info("Latency JSON saved: %s (p50=%s p95=%s)", out_path,
+                        f"{_pct(50):.3f}s" if _pct(50) else "N/A",
+                        f"{_pct(95):.3f}s" if _pct(95) else "N/A")
 
 
 # StaticFiles: /audio/{visit_id} WS 라우트 이후 등록 (FastAPI 라우트 우선순위)

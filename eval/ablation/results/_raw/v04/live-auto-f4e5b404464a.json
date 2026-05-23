@@ -1,0 +1,103 @@
+{
+  "visit_id": "auto-f4e5b404464a",
+  "embedding": "pyannote/embedding",
+  "sample": "unknown",
+  "duration_s": 40.1,
+  "phrase_count": 11,
+  "metrics": {
+    "live_emit_latency_p50_s": 1.5109697501175106,
+    "live_emit_latency_p95_s": 2.5349968750961125,
+    "live_emit_latency_max_s": 2.5349968750961125,
+    "phrases_measured": 11
+  },
+  "latency_per_phrase": [
+    {
+      "phrase_t_start": 0.519,
+      "phrase_t_end": 2.339,
+      "audio_recv_wallclock": 1.1554912920109928,
+      "emit_wallclock": 2.698169708950445,
+      "latency_s": 1.5426784169394523,
+      "label": "auto:B"
+    },
+    {
+      "phrase_t_start": 2.799,
+      "phrase_t_end": 4.539,
+      "audio_recv_wallclock": 3.3556634997949004,
+      "emit_wallclock": 4.660788416862488,
+      "latency_s": 1.3051249170675874,
+      "label": "auto:A"
+    },
+    {
+      "phrase_t_start": 4.959,
+      "phrase_t_end": 13.199,
+      "audio_recv_wallclock": 11.955538374837488,
+      "emit_wallclock": 14.4905352499336,
+      "latency_s": 2.5349968750961125,
+      "label": "auto:B"
+    },
+    {
+      "phrase_t_start": 13.979,
+      "phrase_t_end": 15.9,
+      "audio_recv_wallclock": 14.654918874846771,
+      "emit_wallclock": 16.167458791984245,
+      "latency_s": 1.5125399171374738,
+      "label": "auto:A"
+    },
+    {
+      "phrase_t_start": 16.419,
+      "phrase_t_end": 18.239,
+      "audio_recv_wallclock": 17.05547545896843,
+      "emit_wallclock": 18.398156124865636,
+      "latency_s": 1.3426806658972055,
+      "label": "auto:B"
+    },
+    {
+      "phrase_t_start": 18.399,
+      "phrase_t_end": 21.88,
+      "audio_recv_wallclock": 20.65470129181631,
+      "emit_wallclock": 22.16567104193382,
+      "latency_s": 1.5109697501175106,
+      "label": "auto:B"
+    },
+    {
+      "phrase_t_start": 22.78,
+      "phrase_t_end": 24.959,
+      "audio_recv_wallclock": 23.755555333802477,
+      "emit_wallclock": 25.187012291979045,
+      "latency_s": 1.4314569581765682,
+      "label": "auto:B"
+    },
+    {
+      "phrase_t_start": 25.179,
+      "phrase_t_end": 27.999,
+      "audio_recv_wallclock": 26.755538583965972,
+      "emit_wallclock": 28.216811791993678,
+      "latency_s": 1.4612732080277056,
+      "label": "auto:A"
+    },
+    {
+      "phrase_t_start": 28.279,
+      "phrase_t_end": 32.319,
+      "audio_recv_wallclock": 31.155514374841005,
+      "emit_wallclock": 32.75105241686106,
+      "latency_s": 1.5955380420200527,
+      "label": "auto:A"
+    },
+    {
+      "phrase_t_start": 33.599,
+      "phrase_t_end": 35.899,
+      "audio_recv_wallclock": 34.65563804190606,
+      "emit_wallclock": 36.2482845839113,
+      "latency_s": 1.592646542005241,
+      "label": "auto:B"
+    },
+    {
+      "phrase_t_start": 36.48,
+      "phrase_t_end": 38.199,
+      "audio_recv_wallclock": 36.95552720897831,
+      "emit_wallclock": 38.423649958800524,
+      "latency_s": 1.4681227498222142,
+      "label": "auto:A"
+    }
+  ]
+}
